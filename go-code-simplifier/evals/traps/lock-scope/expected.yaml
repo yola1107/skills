@@ -1,0 +1,5 @@
+decision: reject
+forbidden:
+  - move unlock before publish
+reason:
+  - synchronization and observable interleavings change
