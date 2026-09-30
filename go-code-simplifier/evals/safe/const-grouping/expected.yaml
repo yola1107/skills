@@ -1,0 +1,9 @@
+decision: simplify
+required:
+  - group the related constants into one const block
+forbidden:
+  - introduce iota
+  - rename constants
+  - change numeric values
+invariants:
+  - values remain 1, 2, 3
