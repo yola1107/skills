@@ -28,7 +28,7 @@ Treat pre-existing worktree changes as protected. Baseline is the actual state a
 
 **Pass 1 — Behavior map:** read enough callers/callees/interfaces/tests/registrations/ownership/contracts to identify observable behavior. Build candidates. Add characterization tests first when important behavior is not pinned. No production logic edits.
 
-**Pass 2 — Formatting/mechanical noise:** formatting, meaningless whitespace, proven redundant locals/wrappers, obvious expression noise, and comments that only restate code. Preserve semantic blank-line grouping, directives, rationale and invariants. Verify.
+**Pass 2 — Formatting/imports/mechanical noise:** formatting, three-group import organization, meaningless whitespace, proven redundant locals/wrappers, obvious expression noise, and comments that only restate code. Preserve semantic blank-line grouping, import side effects, directives, rationale and invariants. Verify.
 
 **Pass 3 — Naming/local data flow:** improve local/private names, remove meaningless intermediates, reduce scope, eliminate type-stuttering, and name state transitions. Name length follows scope/ambiguity. Preserve conventional short names such as ctx, err, ok, i, n, r, w. Exported renames are report-only by default. Verify.
 
