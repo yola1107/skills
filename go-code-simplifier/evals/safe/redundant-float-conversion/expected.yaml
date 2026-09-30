@@ -1,0 +1,8 @@
+decision: simplify
+required:
+  - remove the redundant float64 conversion while keeping the explicit variable type
+forbidden:
+  - change the variable type
+invariants:
+  - ratio remains float64
+  - value is unchanged
