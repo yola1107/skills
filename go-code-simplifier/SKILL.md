@@ -23,7 +23,7 @@ For behavior-preserving simplification, this skill supersedes overlapping style/
 4. Go semantics for the repository's declared version.
 5. External style guidance only as candidate sources.
 
-Always read `references/safety-gate.md` and `references/verification.md`. Read `references/tooling.md` when choosing or running Go tooling. Read `references/constants-types.md` whenever a candidate touches constants, enum-like declarations, declaration forms, or explicit numeric conversions. Load other pass-specific and behavior-sensitive references only when relevant.
+Always read `references/safety-gate.md`. Read `references/verification.md` before the first code-changing batch or when deciding what evidence is required. Read `references/tooling.md` before choosing a nontrivial or source-mutating Go tool. Read `references/constants-types.md` when a candidate touches constants, enum-like declarations, declaration forms, or explicit numeric conversions. Load other references only when their branch is reached.
 
 ## Scope boundary
 
@@ -44,12 +44,9 @@ If evidence is insufficient for a behavior-sensitive candidate, prefer skipping 
 Before editing, summarize the intended cleanup batch and flag behavior-sensitive areas it touches (for example errors, concurrency, lifecycle, external contracts, reflection/registration, ownership, or serialization). **Complete when** every candidate is classified as safe-to-attempt, needs-more-evidence, or skip, with relevant references identified. Production logic remains unchanged.
 
 ### Pass 2 — Mechanical & Local Cleanup
-Load:
-- `references/formatting-whitespace.md`
-- `references/imports.md`
-- `references/mechanical-cleanup.md`
+Load `references/formatting-whitespace.md` for visual cleanup and `references/mechanical-cleanup.md` for statement/expression cleanup. Load `references/imports.md` only when imports are changed or import organization is in scope.
 
-Apply formatting/whitespace, import organization, and statement/expression-level mechanical cleanup. Function/helper restructuring belongs to Pass 5. **Complete when** all in-scope mechanical candidates are applied or skipped with a reason, and each applied coherent batch has the verification required by `references/verification.md`.
+Apply the relevant formatting, import, and statement/expression cleanup. Function/helper restructuring belongs to Pass 5. **Complete when** all in-scope mechanical candidates are applied or skipped with a reason, and each applied coherent batch has the verification required by `references/verification.md`.
 
 ### Pass 3 — Naming & Local Data Flow
 Load `references/naming-local-data-flow.md`. Improve local/private naming, reduce scope, and make state transitions clearer. Pass 2 owns purely redundant intermediate-variable removal; exported renames are report-only by default. **Complete when** every in-scope naming/data-flow candidate is applied or skipped and applied batches are verified.
