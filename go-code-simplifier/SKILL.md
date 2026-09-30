@@ -16,7 +16,7 @@ Optimize for lower cognitive load, clearer local flow, less redundancy, and fewe
 4. Go semantics for the repository's declared version.
 5. Uber/Samber/style guidance only as candidate generators.
 
-Always read `references/safety-gate.md` and `references/verification.md`. Load the matching pass reference and behavior-sensitive references only when relevant.
+Always read `references/safety-gate.md` and `references/verification.md`. For Pass 2, read `references/formatting-whitespace.md`, `references/imports.md`, and `references/mechanical-cleanup.md`. Load other matching pass and behavior-sensitive references only when relevant.
 
 ## Hard boundary
 Do not mix cleanup with bug fixes, new validation, retries, caching, batching, performance redesign, API/protocol/config/schema changes, dependency upgrades, or concurrency/lifecycle redesign. Report them separately unless scope is explicitly expanded.
