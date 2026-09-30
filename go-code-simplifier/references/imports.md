@@ -67,7 +67,7 @@ Respect build constraints, generated files, and platform-specific source sets.
 Do not introduce a new third-party dependency merely to shorten local code, replace one library with another because APIs look similar, migrate functionality between third-party and standard library incidentally, or change the dependency graph via upgrade/tidy unless explicitly required and authorized.
 
 ## Tooling
-`gofmt` is the baseline formatter. `goimports` may add/remove imports, so review its diff. `gci` is appropriate when repository configuration defines semantic groups. Repository configuration wins over invented CLI flags.
+Use the repository's configured import formatter. Tool safety and mutating-tool review are owned by `tooling.md`.
 
 ## Verification
 After import changes, inspect the import diff (especially blank/dot/alias changes), run repository formatting on touched files, and perform affected-package/build/lint checks required by repository rules.
