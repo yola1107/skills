@@ -40,7 +40,7 @@ Diagnostics identify candidates or regressions. They do not authorize behavior c
 Treat tools/actions that rewrite source as code changes, including:
 
 - `go fix`
-- `gofmt -r` / `gofmt -s -w`
+- `gofmt -r` and `gofmt -s` rewrite modes
 - `goimports -w`
 - gci write/fix modes
 - `golangci-lint --fix`
