@@ -33,7 +33,7 @@ Treat pre-existing worktree changes as protected. The cleanup baseline is the ac
 Resolve mutation scope, repository guidance, worktree/staged changes, Go module/workspace boundaries, and baseline checks. Record pre-existing failures. Do not edit production code.
 
 ### Pass 1 — Understand & Candidate Map
-Read enough callers, callees, interfaces, tests, registrations, ownership and external contracts to understand current behavior and identify worthwhile simplification candidates.
+Read enough callers, callees, interfaces, tests, registrations, ownership and external contracts to understand current behavior and identify worthwhile simplification candidates. When external style guidance would help discover candidates, load `references/style-sources.md`; it never overrides repository rules or the Safety Gate.
 
 If evidence is insufficient for a behavior-sensitive candidate, prefer skipping it. Add characterization tests only when the cleanup has meaningful value, tests are within authorized mutation scope, and the tests record existing behavior rather than redefine it.
 
