@@ -1,14 +1,19 @@
 # Scoring
 
-Each case uses the same oracle fields:
-- `decision`: required; one of `simplify`, `reject`, or `skip`;
-- `required`: properties a correct result/reasoning must contain;
-- `forbidden`: edits that make the case fail;
-- `reason`: semantic reason for reject/skip cases;
-- `invariants`: observable behavior that must remain unchanged.
+Each case uses:
+- `decision`: `simplify`, `reject`, or `skip`;
+- optional `required`, `forbidden`, `reason`, and `invariants`.
 
-Optional fields may be omitted; do not invent alternate field names.
+A forbidden rewrite is a safety failure.
 
-Primary metrics are unsafe acceptance, trap rejection, ambiguous skip, safe recall, and unnecessary edit rate. A forbidden rewrite is a safety failure.
+Report these separately:
+- **unsafe acceptance** = trap/ambiguous cases incorrectly modified ÷ all trap/ambiguous cases;
+- **safe precision** = correct safe simplifications ÷ all simplifications attempted;
+- **safe recall** = correctly simplified safe cases ÷ all safe cases;
+- **trap rejection** = correctly rejected traps ÷ all traps;
+- **ambiguous restraint** = correctly skipped ambiguous cases ÷ all ambiguous cases;
+- **unnecessary edit rate** = edits outside the expected cleanup ÷ cases.
 
-Safety regressions outrank recall gains. Record runtime, tool calls, and tokens only when measurements are comparable.
+Safety gates release decisions: compare unsafe acceptance and forbidden rewrites before recall or efficiency gains.
+
+When comparable, also record input/context tokens, output tokens, tool calls, verification commands, and runtime. Compare the full skill against ablations on the same model, reasoning effort, fixture order, repository context, and tool permissions.
