@@ -63,21 +63,9 @@ Stop simplifying. Review the complete cleanup diff against the baseline. Load `r
 ### Pass 7 — Final Verification
 Run final verification according to `references/verification.md`. **Complete when** required final checks have run on the final relevant state and every reported claim matches observed evidence.
 
-## Reviewer strategy
+## Review and effort
 
-Default to one agent for focused/local cleanup. For broad scopes where independent read-only scans can save time or improve coverage, delegate reviewers in parallel when the harness supports it. Keep review axes independent:
-- **Standards:** repository rules plus this skill's cleanup rules and Go conventions;
-- **Behavior/spec:** requested cleanup scope plus observable-behavior preservation.
-
-Do not let reviewers concurrently edit overlapping code, and do not merge the two axes into one vague verdict. Final verification and apply/revert decisions remain the main agent's responsibility.
-
-Efficiency findings are separate optimization candidates unless behavior equivalence is directly established. Do not introduce reflection, unsafe, complex generics/type machinery, higher-order callback layers, or new closure-heavy/dynamic abstractions merely to make code shorter or more "elegant"; prefer direct, explicit Go.
-
-Do not require a particular MCP, IDE, `gopls`, code graph, or third-party tool. Use available tools opportunistically.
-
-## Efficiency discipline
-
-Use risk-adaptive effort. Low-risk formatting/naming/import-only batches should load only relevant references and use narrow verification. Structural or behavior-sensitive changes require the strict audit and broader evidence. Do not write implementation-mirroring tests for reversible low-impact edits. Once required checks pass, broaden or repeat them only when later edits, failures, or unresolved risks justify it.
+For focused/local cleanup, stay single-agent and use risk-proportional evidence. For broad scopes, independent review, or uncertainty about review cost, load `references/review-efficiency.md`.
 
 ## Completion
 
