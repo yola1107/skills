@@ -48,7 +48,7 @@ Load:
 Apply formatting/whitespace, import organization, and statement/expression-level mechanical cleanup. Do not perform function/helper restructuring in this pass. Verify each coherent batch according to `references/verification.md`.
 
 ### Pass 3 — Naming & Local Data Flow
-Load `references/naming-local-data-flow.md`. Improve local/private naming, remove meaningless intermediates, reduce scope, and make state transitions clearer. Exported renames are report-only by default. Verify each coherent batch.
+Load `references/naming-local-data-flow.md`. Improve local/private naming, reduce scope, and make state transitions clearer. Pass 2 owns decisions about purely redundant intermediate variables. Exported renames are report-only by default. Verify each coherent batch.
 
 ### Pass 4 — Control Flow
 Load `references/control-flow.md`. Reduce unnecessary nesting and clarify guards/branches only when evaluation order, call count, error precedence, mutations and side effects remain equivalent. Verify each coherent batch.
