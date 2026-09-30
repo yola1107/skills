@@ -19,13 +19,15 @@ Local/parameter renames are low risk. Private function/method renames require co
 
 Receiver names follow normal Go locality rules and should be short, meaningful, and consistent across methods of the same type.
 
-Prefer a short abbreviation derived from the receiver type:
-- `s *Server` rather than `this *Server` or `self *Server`;
+For hand-written Go code, avoid object-oriented receiver names such as `this`, `self`, and `me`. Treat them as naming-cleanup candidates whenever the rename is local and safe.
+
+Use a short abbreviation derived from the receiver type:
+- `s *Server`;
 - `c *Client`;
 - `r *Registry`;
 - `p *Player`.
 
-Avoid `this`, `self`, `me`, and verbose repetitions such as `server *Server` when a short receiver is unambiguous.
+Also avoid verbose type repetition such as `server *Server` when a short receiver is unambiguous. Keep the receiver name consistent across methods of the same type. Generated code and externally generated conventions are not cleanup targets.
 
 Receiver renaming is a naming-only cleanup: do **not** change pointer receiver to value receiver, value receiver to pointer receiver, receiver type, method set, mutability, nil-receiver behavior, or interface satisfaction.
 
