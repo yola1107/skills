@@ -1,0 +1,5 @@
+decision: skip
+reason:
+  - callers and abstraction role are not provided
+required:
+  - inspect sufficient references before deciding to inline
