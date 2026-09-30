@@ -1,0 +1,5 @@
+decision: simplify
+required:
+  - rename the private function to parseURL
+invariants:
+  - signature and behavior unchanged
