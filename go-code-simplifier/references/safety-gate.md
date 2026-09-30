@@ -1,8 +1,6 @@
 # Safety Gate
 
-A missed cleanup opportunity is acceptable. An unproven behavior change is not.
-
-Decision priority: **safety / behavior equivalence > clarity > simplicity > brevity**. If a shorter form hides a boundary check, error path, ownership rule, side effect, or important domain step, keep the explicit form.
+A missed cleanup opportunity is acceptable. An unproven behavior change is not. Apply the decision order defined in `../SKILL.md`; keep explicit boundary checks, error paths, ownership rules, side effects, and domain steps when they carry information.
 
 Apply only when the simplification benefit is concrete, relevant observable behavior is understood, equivalence is explainable, mutation stays in scope, and verification can detect likely regressions.
 
