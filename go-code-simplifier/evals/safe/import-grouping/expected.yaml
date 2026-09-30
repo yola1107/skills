@@ -1,0 +1,8 @@
+decision: simplify
+required:
+  - group imports as standard library, project packages, third-party dependencies
+  - separate groups with one blank line
+invariants:
+  - imported packages unchanged
+  - aliases unchanged
+  - behavior unchanged
