@@ -1,0 +1,5 @@
+decision: skip
+reason:
+  - visible source alone does not establish absence of build-tag platform generated or external references
+forbidden:
+  - delete helper solely because no caller is visible in the fixture
