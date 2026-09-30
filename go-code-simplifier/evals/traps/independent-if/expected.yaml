@@ -1,0 +1,4 @@
+decision: reject
+tempting_rewrite: "convert independent if statements to if/else-if or single-match switch"
+reason:
+  - both branches may execute
