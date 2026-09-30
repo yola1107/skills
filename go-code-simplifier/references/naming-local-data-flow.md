@@ -17,7 +17,7 @@ Local/parameter renames are low risk. Private function/method renames require co
 
 ## Method receivers
 
-Receiver names follow normal Go locality rules and should be short, meaningful, and consistent across methods of the same type.
+Receiver names follow normal Go locality rules and should be short and meaningful.
 
 For hand-written Go code, avoid object-oriented receiver names such as `this`, `self`, and `me`. Treat them as naming-cleanup candidates whenever the rename is local and safe.
 
