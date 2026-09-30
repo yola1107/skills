@@ -24,3 +24,17 @@ Skip consolidation that requires mode flags, generic frameworks, callbacks/optio
 Extract only coherent responsibilities. Do not split into `step1/step2/step3` merely to lower function length or complexity. Do not redesign signatures solely because a style guide sets a parameter-count threshold.
 
 `gocyclo` / `gocognit` may locate hotspots; they are not acceptance criteria.
+
+
+## Over-simplification check
+
+Reject a structural cleanup when it:
+- hides nil/error/bounds/validation handling inside a generic helper;
+- turns visible sequential flow into callbacks or closure-driven control flow;
+- replaces concrete code with reflection or dynamic dispatch;
+- requires complex generics only to remove small duplication;
+- merges distinct domain steps until their names/invariants disappear;
+- makes allocation, ownership, synchronization, or failure behavior harder to see;
+- saves lines while increasing navigation or cognitive load.
+
+Prefer a small amount of explicit duplication over a clever abstraction when the explicit form makes behavior easier to audit.
