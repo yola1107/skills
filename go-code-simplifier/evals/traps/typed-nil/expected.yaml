@@ -1,0 +1,4 @@
+decision: reject
+tempting_rewrite: "return validate(ok)"
+reason:
+  - direct return converts a typed nil *ValidationError into a non-nil error interface
