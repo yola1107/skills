@@ -2,7 +2,7 @@ package sample
 
 import (
 	"database/sql"
-	_ "github.com/go-sql-driver/mysql"
+	_ "example.com/driver"
 )
 
-func open() (*sql.DB, error) { return sql.Open("mysql", "dsn") }
+func open() (*sql.DB, error) { return sql.Open("evaldriver", "dsn") }
