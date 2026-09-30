@@ -1,0 +1,4 @@
+decision: reject
+tempting_rewrite: "return []int{}"
+reason:
+  - JSON changes from null to []
