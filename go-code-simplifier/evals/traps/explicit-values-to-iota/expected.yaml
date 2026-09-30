@@ -1,7 +1,0 @@
-decision: reject
-forbidden:
-  - replace explicit numeric values with iota
-reason:
-  - explicit values may be external contracts and iota changes maintenance and insertion semantics
-invariants:
-  - numeric values remain explicitly declared
