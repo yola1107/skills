@@ -1,0 +1,5 @@
+decision: reject
+forbidden:
+  - remove blank import as unused
+reason:
+  - package initialization may register required behavior
