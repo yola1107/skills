@@ -72,7 +72,11 @@ Run final verification according to `references/verification.md`. Claims must ma
 
 ## Reviewer strategy
 
-Default to one agent for focused/local cleanup. For broad scopes where independent read-only scans can save time or improve coverage, delegate simplification discovery and behavior-equivalence review in parallel when the harness supports it. Do not let reviewers concurrently edit overlapping code. Final verification and apply/revert decisions remain the main agent's responsibility.
+Default to one agent for focused/local cleanup. For broad scopes where independent read-only scans can save time or improve coverage, delegate reviewers in parallel when the harness supports it. Keep review axes independent:
+- **Standards:** repository rules plus this skill's cleanup rules and Go conventions;
+- **Behavior/spec:** requested cleanup scope plus observable-behavior preservation.
+
+Do not let reviewers concurrently edit overlapping code, and do not merge the two axes into one vague verdict. Final verification and apply/revert decisions remain the main agent's responsibility.
 
 Efficiency findings are separate optimization candidates unless behavior equivalence is directly established. Do not introduce reflection, unsafe, complex generics/type machinery, higher-order callback layers, or new closure-heavy/dynamic abstractions merely to make code shorter or more "elegant"; prefer direct, explicit Go.
 
