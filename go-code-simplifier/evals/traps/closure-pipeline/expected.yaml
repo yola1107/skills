@@ -1,0 +1,5 @@
+decision: reject
+forbidden:
+  - replace the direct sequential flow with a slice of closures or callback pipeline
+reason:
+  - higher-order indirection hides simple control flow and adds unnecessary runtime/cognitive overhead
