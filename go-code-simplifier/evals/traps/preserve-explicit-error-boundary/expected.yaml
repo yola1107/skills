@@ -1,0 +1,6 @@
+decision: reject
+forbidden:
+  - remove the explicit error or nil boundary merely to shorten the function
+  - dereference the result without preserving both checks
+reason:
+  - explicit failure boundaries are part of observable safety and error behavior
