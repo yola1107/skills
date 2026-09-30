@@ -30,7 +30,7 @@ Treat pre-existing worktree changes as protected. The cleanup baseline is the ac
 ## Workflow
 
 ### Pass 0 — Scope & Baseline
-Resolve mutation scope, repository guidance, worktree/staged changes, Go module/workspace boundaries, and baseline checks. Record pre-existing failures. Do not edit production code.
+Resolve mutation scope, repository guidance, worktree/staged changes, Go module/workspace boundaries, and baseline checks. Record pre-existing failures. Classify the task risk/size so later reference loading and verification stay proportional. Do not edit production code.
 
 ### Pass 1 — Understand & Candidate Map
 Read enough callers, callees, interfaces, tests, registrations, ownership and external contracts to understand current behavior and identify worthwhile simplification candidates. When external style guidance would help discover candidates, load `references/style-sources.md`; it never overrides repository rules or the Safety Gate.
@@ -64,11 +64,15 @@ Run final verification according to `references/verification.md`. Claims must ma
 
 ## Reviewer strategy
 
-Default to one agent. For broad scopes, optional read-only reviewers may separately scan simplification candidates and behavior-equivalence risks. Do not let reviewers concurrently edit overlapping code. Final verification and apply/revert decisions remain the main agent's responsibility.
+Default to one agent for focused/local cleanup. For broad scopes where independent read-only scans can save time or improve coverage, delegate simplification discovery and behavior-equivalence review in parallel when the harness supports it. Do not let reviewers concurrently edit overlapping code. Final verification and apply/revert decisions remain the main agent's responsibility.
 
 Efficiency findings are separate optimization candidates unless behavior equivalence is directly established.
 
 Do not require a particular MCP, IDE, `gopls`, code graph, or third-party tool. Use available tools opportunistically.
+
+## Efficiency discipline
+
+Use risk-adaptive effort. Low-risk formatting/naming/import-only batches should load only relevant references and use narrow verification. Structural or behavior-sensitive changes require the strict audit and broader evidence. Do not write implementation-mirroring tests for reversible low-impact edits. Once required checks pass, broaden or repeat them only when later edits, failures, or unresolved risks justify it.
 
 ## Completion
 
