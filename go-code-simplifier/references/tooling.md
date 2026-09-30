@@ -21,31 +21,13 @@ Repository-configured import formatting such as gci may be used according to `im
 
 ## Diagnostic tools
 
-Prefer diagnostics in read-only/non-fixing mode:
+Use repository-native checks in read-only/non-fixing mode. Standard examples are `go test`, `go vet`, `go build`, and `go test -race` for concurrency-sensitive paths; configured tools such as staticcheck, golangci-lint, complexity, gopls, dead-code, or callgraph diagnostics may add evidence.
 
-- `go test`
-- `go test -race` when concurrency-sensitive
-- `go vet`
-- `go build`
-- `staticcheck` when configured/available
-- `golangci-lint run` when configured/available
-- `gocyclo` / `gocognit` as hotspot signals
-- gopls diagnostics/references/rename support when available
-- dead-code/callgraph tools as evidence, never sole proof
-
-Diagnostics identify candidates or regressions. They do not authorize behavior changes.
+Diagnostics identify candidates or regressions; they do not authorize behavior changes. Let repository scripts/configuration reveal the exact available command instead of reproducing its setup here.
 
 ## Mutating tools
 
-Treat tools/actions that rewrite source as code changes, including:
-
-- `go fix`
-- `gofmt -r` and `gofmt -s` rewrite modes
-- `goimports -w`
-- gci write/fix modes
-- `golangci-lint --fix`
-- gopls rename/inline/extract/code actions
-- gopatch, eg, SuggestedFixes, custom AST/analysis fixers
+Treat any source-rewriting action as a code change, including fixer/write modes (`go fix`, rewrite-mode gofmt/goimports/gci/linters), refactor code actions (for example gopls rename/inline/extract), and bulk rewrite/AST tools.
 
 Use a mutating tool only for an already-approved cleanup or a narrowly reviewed mechanical batch. Inspect its diff afterward. The generated diff must pass the same Safety Gate, strict equivalence audit, and verification as a hand edit.
 
