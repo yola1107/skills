@@ -1,19 +1,15 @@
 ---
 name: go-code-simplifier
-description: Safety-first simplification of existing Golang code. Reduce local redundancy, naming noise, data-flow complexity, nesting, and shallow abstractions only when observable behavior remains equivalent. Do not use for bug fixes, performance redesign, API/protocol/config/schema changes, dependency migration, or concurrency/lifecycle redesign.
+description: Simplify or clean up existing Golang code while preserving observable behavior. Use for behavior-preserving cleanup of redundancy, local naming/data flow, control flow, imports/formatting, constants, and shallow private abstractions. Route bug fixes, performance or modernization work, API/protocol/config/schema changes, dependency migration, and concurrency/lifecycle redesign to separate work.
 ---
 
 # Go Code Simplifier
 
-Simplify existing Go code with one non-negotiable rule:
-
-> **Behavior equivalence comes first. If equivalence cannot be established, do not change the code.**
-
-Use this decision priority for every candidate:
+Every candidate follows one decision order:
 
 > **Safety / behavior equivalence > clarity > simplicity > brevity.**
 
-Never trade an explicit safety check, meaningful boundary, or readable control flow for fewer lines. Optimize for lower cognitive load, clearer local flow, less redundancy, and fewer unnecessary concepts. Fewer lines, functions, or complexity points are not goals by themselves.
+When equivalence is unproven, preserve the existing code. Keep explicit safety checks, meaningful boundaries, and readable control flow when they carry information. Optimize for lower cognitive load and fewer unnecessary concepts, not fewer lines.
 
 ## Skill boundary
 
@@ -29,9 +25,9 @@ For behavior-preserving simplification, this skill supersedes overlapping style/
 
 Always read `references/safety-gate.md` and `references/verification.md`. Read `references/tooling.md` when choosing or running Go tooling. Read `references/constants-types.md` whenever a candidate touches constants, enum-like declarations, declaration forms, or explicit numeric conversions. Load other pass-specific and behavior-sensitive references only when relevant.
 
-## Hard boundary
+## Scope boundary
 
-Do not mix cleanup with bug fixes, new validation, retries, caching, batching, performance redesign, API/protocol/config/schema changes, dependency upgrades/migration, or concurrency/lifecycle redesign. Report them separately unless scope is explicitly expanded.
+This skill owns behavior-preserving cleanup. Treat bug fixes, new validation, retries, caching/batching, performance or modernization work, API/protocol/config/schema changes, dependency upgrades/migration, and concurrency/lifecycle redesign as separate work unless the user explicitly expands scope.
 
 Treat pre-existing worktree changes as protected. The cleanup baseline is the actual state at cleanup start, not necessarily `HEAD`. Reading may extend beyond mutation scope to prove behavior; editing may not silently extend beyond it.
 
