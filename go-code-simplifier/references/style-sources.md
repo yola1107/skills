@@ -1,24 +1,21 @@
 # External Style Sources
 
-External Go style guides and community skills are candidate sources, not authorities over established behavior.
+Use external Go style guides and community skills only to discover simplification candidates. They do not define safety or authorize edits.
 
 Useful sources include:
 - Go conventions and standard tooling;
 - Uber Go Style Guide;
 - samber/cc-skills-golang, especially naming, code-style, refactoring, and safety guidance.
 
-Useful candidate heuristics include short readable names, scope-based naming, anti-stutter, reduced nesting, small verifiable transforms, ownership awareness, and tool-assisted rename/inline when available.
+Useful candidate heuristics include:
+- short readable names and name length matched to scope;
+- anti-stutter and consistent concept names;
+- reduced nesting and unnecessary `else`;
+- small independently verifiable transforms;
+- ownership awareness;
+- tool-assisted rename/inline when available;
+- avoiding premature or weak abstractions.
 
-## Never import style rules mechanically
-Do not automatically:
-- normalize nil collections to empty values;
-- add/remove defensive copies;
-- redesign functions because of a parameter-count threshold;
-- add/remove error wrapping/logging;
-- change pointer/value receivers or zero-value semantics;
-- alter mutex/defer/goroutine/context/lifecycle behavior;
-- unexport or rename public APIs;
-- preallocate/cache/batch/parallelize for performance;
-- modernize syntax/dependencies merely because a guide prefers it.
+For every candidate, return to `safety-gate.md` and the relevant pass reference before editing. A source's `MUST`, preferred style, modernization advice, performance advice, or API-design recommendation is not permission to change established behavior.
 
-Repository rules and the Safety Gate always win.
+Repository-local rules take precedence over these sources.
