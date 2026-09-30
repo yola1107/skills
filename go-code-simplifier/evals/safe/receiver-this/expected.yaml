@@ -1,7 +1,10 @@
 decision: simplify
-expected:
+required:
   - rename receiver "this" to a short type-derived name such as "s"
   - keep receiver type "*Server"
 forbidden:
   - change pointer receiver to value receiver
   - change method signatures or behavior
+invariants:
+  - method set unchanged
+  - behavior unchanged
