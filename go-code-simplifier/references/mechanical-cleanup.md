@@ -8,9 +8,9 @@ This pass owns statement/expression-level redundancy. Function/helper/wrapper re
 - boolean-return boilerplate;
 - identity formatting/conversion with identical semantics;
 - redundant syntax or expression noise that can be proven locally;
-- comments that only restate obvious syntax.
+- non-doc comments that only restate obvious local syntax.
 
-Keep comments that explain reasons, contracts, invariants, ownership, concurrency, protocol/compatibility behavior, workarounds, generated markers, licenses, or compiler/tool directives.
+Preserve Go doc comments for exported/package declarations unless documentation cleanup is explicitly in scope. Keep comments that explain reasons, contracts, invariants, ownership, concurrency, protocol/compatibility behavior, workarounds, generated markers, licenses, or compiler/tool directives.
 
 ## Intermediate variables
 “Used once” is not a deletion rule.
