@@ -1,0 +1,5 @@
+decision: simplify
+required:
+  - remove the unnecessary else after the terminating return
+invariants:
+  - returned error identity unchanged
