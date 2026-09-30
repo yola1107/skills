@@ -1,4 +1,5 @@
 decision: simplify
-expected_shape: "return v"
+required:
+  - simplify the function body to "return v"
 invariants:
-  - return value is unchanged for true and false
+  - return value unchanged for true and false
