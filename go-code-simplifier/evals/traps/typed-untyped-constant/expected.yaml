@@ -1,0 +1,5 @@
+decision: reject
+forbidden:
+  - remove the explicit int8 type merely for brevity
+reason:
+  - typed and untyped constants have different type and representability semantics outside this local expression
