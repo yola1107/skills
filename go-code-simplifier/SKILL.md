@@ -34,14 +34,14 @@ Treat pre-existing worktree changes as protected. The cleanup baseline is the ac
 ## Workflow
 
 ### Pass 0 — Scope & Baseline
-Resolve mutation scope, repository guidance, worktree/staged changes, Go module/workspace boundaries, and baseline checks. Record pre-existing failures. Classify the task risk/size so later reference loading and verification stay proportional. Do not edit production code.
+Resolve mutation scope, repository guidance, worktree/staged changes, Go module/workspace boundaries, and baseline checks. Record pre-existing failures and classify risk/size. **Complete when** mutation scope, baseline, applicable repository rules, and verification entry points are known. Production code remains unchanged.
 
 ### Pass 1 — Understand & Candidate Map
 Read enough callers, callees, interfaces, tests, registrations, ownership and external contracts to understand current behavior and identify worthwhile simplification candidates. When external style guidance would help discover candidates, load `references/style-sources.md`; it never overrides repository rules or the Safety Gate.
 
 If evidence is insufficient for a behavior-sensitive candidate, prefer skipping it. Add characterization tests only when the cleanup has meaningful value, tests are within authorized mutation scope, and the tests record existing behavior rather than redefine it.
 
-Before editing, summarize the intended cleanup batch and flag any behavior-sensitive areas it touches (for example errors, concurrency, lifecycle, external contracts, reflection/registration, ownership, or serialization). Do not edit production logic in this pass.
+Before editing, summarize the intended cleanup batch and flag behavior-sensitive areas it touches (for example errors, concurrency, lifecycle, external contracts, reflection/registration, ownership, or serialization). **Complete when** every candidate is classified as safe-to-attempt, needs-more-evidence, or skip, with relevant references identified. Production logic remains unchanged.
 
 ### Pass 2 — Mechanical & Local Cleanup
 Load:
@@ -49,22 +49,22 @@ Load:
 - `references/imports.md`
 - `references/mechanical-cleanup.md`
 
-Apply formatting/whitespace, import organization, and statement/expression-level mechanical cleanup. Do not perform function/helper restructuring in this pass. Verify each coherent batch according to `references/verification.md`.
+Apply formatting/whitespace, import organization, and statement/expression-level mechanical cleanup. Function/helper restructuring belongs to Pass 5. **Complete when** all in-scope mechanical candidates are applied or skipped with a reason, and each applied coherent batch has the verification required by `references/verification.md`.
 
 ### Pass 3 — Naming & Local Data Flow
-Load `references/naming-local-data-flow.md`. Improve local/private naming, reduce scope, and make state transitions clearer. Pass 2 owns decisions about purely redundant intermediate variables. Exported renames are report-only by default. Verify each coherent batch.
+Load `references/naming-local-data-flow.md`. Improve local/private naming, reduce scope, and make state transitions clearer. Pass 2 owns purely redundant intermediate-variable removal; exported renames are report-only by default. **Complete when** every in-scope naming/data-flow candidate is applied or skipped and applied batches are verified.
 
 ### Pass 4 — Control Flow
-Load `references/control-flow.md`. Reduce unnecessary nesting and clarify guards/branches only when evaluation order, call count, error precedence, mutations and side effects remain equivalent. Verify each coherent batch.
+Load `references/control-flow.md`. Reduce unnecessary nesting and clarify guards/branches only when evaluation order, call count, error precedence, mutations and side effects remain equivalent. **Complete when** every in-scope control-flow candidate is applied or skipped and applied batches are verified.
 
 ### Pass 5 — Structure & Duplication
-Load `references/local-structure-redundancy.md`. Remove only proven shallow private helpers/wrappers and semantic duplication. Preserve useful business naming, synchronization, ownership, validation, instrumentation, compatibility and test seams. Verify each coherent batch.
+Load `references/local-structure-redundancy.md`. Remove only proven shallow private helpers/wrappers and semantic duplication while preserving meaningful boundaries. **Complete when** every in-scope structural candidate is applied or skipped and applied batches are verified.
 
 ### Pass 6 — Strict Equivalence Audit
-Stop simplifying. Review the complete cleanup diff against the cleanup baseline. Load `references/go-equivalence-rules.md` and, when relevant, `references/concurrency-lifecycle.md` and `references/external-contracts.md`. Prove equivalence for suspicious changes or revert the individual cleanup.
+Stop simplifying. Review the complete cleanup diff against the baseline. Load `references/go-equivalence-rules.md` and, when relevant, `references/concurrency-lifecycle.md` and `references/external-contracts.md`. **Complete when** every changed behavior-sensitive hunk has equivalence evidence or has been reverted.
 
 ### Pass 7 — Final Verification
-Run final verification according to `references/verification.md`. Claims must match checks actually run on the final relevant state.
+Run final verification according to `references/verification.md`. **Complete when** required final checks have run on the final relevant state and every reported claim matches observed evidence.
 
 ## Reviewer strategy
 
