@@ -10,6 +10,6 @@ Prefer state names such as raw → decoded → normalized → validated over dat
 
 Primitive parameters should expose role when ambiguous: sessionID, roomID, playerID. Interface parameter names may improve documentation if only names change. Multiple bool parameters are a readability signal, not permission to redesign public API.
 
-Remove intermediate variables only when they add no business/state/ownership/evaluation/type/debug meaning. Reduce scope only when lifetime, closure capture, defer and evaluation remain unchanged.
+Pass 2 decides whether a purely redundant intermediate variable can be removed. This pass owns the remaining variable's name, role clarity, and scope. Reduce scope only when lifetime, closure capture, defer and evaluation remain unchanged.
 
 Local/parameter renames are low risk. Private function/method renames require complete reference evidence. Exported identifiers default to report-only. After nontrivial renames check shadowing, closures, named returns, interfaces, reflection, tags/templates, generated code, registries and string/config dependencies. Use gopls rename when available, but do not depend on it.
