@@ -33,10 +33,10 @@ Within each group, use repository formatter/tooling order; otherwise normal Go l
 Resolve local/project grouping in this order:
 1. repository formatter configuration (for example gci sections/prefix or goimports local prefixes);
 2. repository AGENTS.md/development/style documentation;
-3. owning `go.mod` module path;
-4. relevant local modules from `go.work` / nested `go.mod`.
+3. only when no project grouping is configured, the owning `go.mod` module path;
+4. only as fallback for a multi-module workspace, relevant local modules from `go.work` / nested `go.mod`.
 
-Do not hard-code a universal project prefix.
+Configured grouping is authoritative even when it is broader or narrower than module paths. Do not expand the project group merely because another local module exists, and do not hard-code a universal project prefix.
 
 ## Allowed cleanup
 - remove ordinary imports made unused by an approved cleanup;
