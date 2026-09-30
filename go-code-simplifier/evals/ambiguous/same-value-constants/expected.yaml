@@ -1,0 +1,5 @@
+decision: skip
+reason:
+  - equal numeric values do not establish equal domain meaning
+forbidden:
+  - merge or alias the constants without domain evidence
