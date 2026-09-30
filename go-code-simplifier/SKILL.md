@@ -1,6 +1,6 @@
 ---
 name: go-code-simplifier
-description: Safety-first simplification of existing Go code. Reduce local redundancy, naming noise, data-flow complexity, nesting, and shallow abstractions only when observable behavior remains equivalent. Do not use for bug fixes, performance redesign, API/protocol/config/schema changes, dependency migration, or concurrency/lifecycle redesign.
+description: Safety-first simplification of existing Golang code. Reduce local redundancy, naming noise, data-flow complexity, nesting, and shallow abstractions only when observable behavior remains equivalent. Do not use for bug fixes, performance redesign, API/protocol/config/schema changes, dependency migration, or concurrency/lifecycle redesign.
 ---
 
 # Go Code Simplifier
@@ -10,6 +10,10 @@ Simplify existing Go code with one non-negotiable rule:
 > **Behavior equivalence comes first. If equivalence cannot be established, do not change the code.**
 
 Optimize for lower cognitive load, clearer local flow, less redundancy, and fewer unnecessary concepts. Fewer lines, functions, or complexity points are not goals by themselves.
+
+## Skill boundary
+
+For behavior-preserving simplification, this skill supersedes overlapping style/refactoring advice from `samber/cc-skills-golang@golang-naming`, `samber/cc-skills-golang@golang-code-style`, and `samber/cc-skills-golang@golang-refactoring`. Those skills may help discover candidates, but they do not authorize edits that fail this skill's Safety Gate. This skill does not supersede domain-specific skills for debugging, performance, security, databases, protocols, or framework APIs.
 
 ## Precedence
 
