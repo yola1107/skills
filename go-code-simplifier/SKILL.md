@@ -9,7 +9,11 @@ Simplify existing Go code with one non-negotiable rule:
 
 > **Behavior equivalence comes first. If equivalence cannot be established, do not change the code.**
 
-Optimize for lower cognitive load, clearer local flow, less redundancy, and fewer unnecessary concepts. Fewer lines, functions, or complexity points are not goals by themselves.
+Use this decision priority for every candidate:
+
+> **Safety / behavior equivalence > clarity > simplicity > brevity.**
+
+Never trade an explicit safety check, meaningful boundary, or readable control flow for fewer lines. Optimize for lower cognitive load, clearer local flow, less redundancy, and fewer unnecessary concepts. Fewer lines, functions, or complexity points are not goals by themselves.
 
 ## Skill boundary
 
@@ -41,7 +45,7 @@ Read enough callers, callees, interfaces, tests, registrations, ownership and ex
 
 If evidence is insufficient for a behavior-sensitive candidate, prefer skipping it. Add characterization tests only when the cleanup has meaningful value, tests are within authorized mutation scope, and the tests record existing behavior rather than redefine it.
 
-Do not edit production logic in this pass.
+Before editing, summarize the intended cleanup batch and flag any behavior-sensitive areas it touches (for example errors, concurrency, lifecycle, external contracts, reflection/registration, ownership, or serialization). Do not edit production logic in this pass.
 
 ### Pass 2 — Mechanical & Local Cleanup
 Load:
@@ -70,7 +74,7 @@ Run final verification according to `references/verification.md`. Claims must ma
 
 Default to one agent for focused/local cleanup. For broad scopes where independent read-only scans can save time or improve coverage, delegate simplification discovery and behavior-equivalence review in parallel when the harness supports it. Do not let reviewers concurrently edit overlapping code. Final verification and apply/revert decisions remain the main agent's responsibility.
 
-Efficiency findings are separate optimization candidates unless behavior equivalence is directly established.
+Efficiency findings are separate optimization candidates unless behavior equivalence is directly established. Do not introduce reflection, unsafe, complex generics/type machinery, higher-order callback layers, or new closure-heavy/dynamic abstractions merely to make code shorter or more "elegant"; prefer direct, explicit Go.
 
 Do not require a particular MCP, IDE, `gopls`, code graph, or third-party tool. Use available tools opportunistically.
 
@@ -80,4 +84,4 @@ Use risk-adaptive effort. Low-risk formatting/naming/import-only batches should 
 
 ## Completion
 
-Zero production-code changes is valid. Report scope, applied changes by pass, behavior-sensitive checks, skipped candidates, exact verification performed, and limitations. Do not use lines removed or complexity-score reduction as primary success metrics.
+Zero production-code changes is valid. Report scope, applied changes by pass, behavior-sensitive/risk areas reviewed, skipped candidates, exact verification performed, and limitations. Call out explicitly when the cleanup touched concurrency/lifecycle, public or external contracts, reflection/registration, ownership/aliasing, serialization, or error identity/wrapping. Do not use lines removed or complexity-score reduction as primary success metrics.
