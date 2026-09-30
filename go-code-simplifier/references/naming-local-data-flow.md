@@ -27,7 +27,7 @@ Use a short abbreviation derived from the receiver type:
 - `r *Registry`;
 - `p *Player`.
 
-Also avoid verbose type repetition such as `server *Server` when a short receiver is unambiguous. Keep the receiver name consistent across methods of the same type. Generated code and externally generated conventions are not cleanup targets.
+Also avoid verbose type repetition such as `server *Server` when a short receiver is unambiguous. Generated code and externally generated conventions are not cleanup targets.
 
 Receiver renaming is a naming-only cleanup: do **not** change pointer receiver to value receiver, value receiver to pointer receiver, receiver type, method set, mutability, nil-receiver behavior, or interface satisfaction.
 
