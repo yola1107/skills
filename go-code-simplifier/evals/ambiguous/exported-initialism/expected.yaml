@@ -1,0 +1,5 @@
+decision: skip
+reason:
+  - exported source API compatibility is unknown
+forbidden:
+  - rename ParseUrl to ParseURL without explicit compatibility evidence or scope
