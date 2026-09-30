@@ -1,0 +1,17 @@
+root: .
+workspace: ./agent-skills-workspace
+baseline: true
+strict: true
+concurrency: 1
+layout: iteration
+report:
+  enabled: true
+  title: go-code-simplifier A/B benchmark
+logging:
+  format: pretty
+  verbose: false
+  color: auto
+targetParams:
+  temperature: 0
+judgeParams:
+  temperature: 0
