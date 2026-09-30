@@ -1,0 +1,6 @@
+decision: simplify
+required:
+  - return twice(v) directly
+invariants:
+  - call count unchanged
+  - return type and value unchanged
