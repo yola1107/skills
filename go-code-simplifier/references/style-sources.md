@@ -1,36 +1,20 @@
 # External Style Sources
 
-Use external Go style guides and community skills only to discover simplification candidates. They do not define safety or authorize edits.
+Use external Go style guides and community skills as candidate sources only. Repository rules and this skill's Safety Gate decide whether an existing-code change is allowed.
 
-Useful sources include:
-- Go conventions and standard tooling;
-- Uber Go Style Guide;
-- samber/cc-skills-golang, especially naming, code-style, refactoring, and safety guidance.
+Relevant sources include Go conventions, the Uber Go Style Guide, and samber/cc-skills-golang naming/code-style/refactoring/safety guidance. Candidate mechanics belong to the matching pass reference; do not duplicate them here.
 
-Useful candidate heuristics include:
-- short readable names and name length matched to scope;
-- anti-stutter and consistent concept names;
-- reduced nesting and unnecessary `else`;
-- small independently verifiable transforms;
-- ownership awareness;
-- tool-assisted rename/inline when available;
-- avoiding premature or weak abstractions.
+## Filter design guidance from cleanup
 
-For every candidate, return to `safety-gate.md` and the relevant pass reference before editing. A source's `MUST`, preferred style, modernization advice, performance advice, or API-design recommendation is not permission to change established behavior.
+Treat external `MUST` rules as design guidance when applying them would change established behavior or contracts. Common examples:
 
-Repository-local rules take precedence over these sources.
+- forcing nil slices/maps to allocated-empty values can change nil/JSON behavior;
+- adding an Unknown/Invalid enum zero can renumber or redefine contracts;
+- replacing larger signatures with options structs changes APIs;
+- renaming boolean fields/methods can break source or reflection contracts;
+- changing pointer/value choices can alter mutation, method sets, nil behavior, or copying;
+- replacing explicit numeric constants with `iota` can change external values and insertion semantics;
+- newer stdlib APIs, dependency removal, or automated modernization belong to separate modernization work;
+- preallocation, copying, caching, batching, or parallelism belong to performance work.
 
-
-## Rules that are design guidance, not automatic cleanup
-
-Do not mechanically import external `MUST` rules into existing code. In particular:
-- “slices/maps must never be nil” can change observable nil/JSON behavior;
-- “enum zero must be Unknown/Invalid” can renumber or redefine existing contracts;
-- “functions over N parameters need an options struct” changes signatures/APIs;
-- “all booleans need is/has/can” can rename fields/methods and break compatibility;
-- “prefer value/pointer based on size” can change method/function semantics and nil behavior;
-- “replace explicit values with iota” can change external numeric contracts and future insertion behavior;
-- modernization such as newer stdlib APIs, dependency removal, or `go fix` belongs to a separate task;
-- performance advice such as preallocation, copying, caching, or parallelism is not strict cleanup.
-
-Safe ideas such as receiver naming, MixedCaps, anti-stutter, scope-based local naming, and unnecessary-else removal still require repository fit and the Safety Gate before editing existing code.
+When an external rule only identifies a candidate, route it to the owning pass reference and re-run the Safety Gate before editing.
