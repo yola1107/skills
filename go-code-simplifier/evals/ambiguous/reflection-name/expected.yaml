@@ -1,0 +1,5 @@
+decision: skip
+reason:
+  - the method name may be consumed through reflection or string-based registration not shown by direct references
+forbidden:
+  - rename Process based only on visible direct references
