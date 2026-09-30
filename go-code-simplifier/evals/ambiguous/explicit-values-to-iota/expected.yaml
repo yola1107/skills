@@ -1,0 +1,5 @@
+decision: skip
+reason:
+  - current numeric values match an iota sequence, but no evidence establishes that changing declaration semantics is desirable or contract-safe
+forbidden:
+  - replace explicit values with iota solely for brevity
