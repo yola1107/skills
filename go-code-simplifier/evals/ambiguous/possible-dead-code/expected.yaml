@@ -1,0 +1,3 @@
+decision: skip
+reason:
+  - visible direct references are insufficient to prove dead code
