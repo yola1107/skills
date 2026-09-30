@@ -1,6 +1,6 @@
 # Control Flow
 
-Prefer explicit flow over clever compactness.
+Prefer explicit flow over clever compactness. Keep the normal path at minimal indentation when an equivalent early error/edge-case exit makes it easier to scan.
 
 Candidates: remove unnecessary else after return/break/continue; guard clauses that preserve exact failure/effect order; reduce nesting without moving effects; consolidate genuinely identical branches; name complex conditions when meaning improves without defeating short-circuit behavior.
 
