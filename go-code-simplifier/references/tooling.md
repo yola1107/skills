@@ -61,12 +61,4 @@ Never use sed/perl/global text replacement for structural Go renames.
 
 Do not introduce APIs, syntax, fixers, or assumptions newer than the repository's declared Go version. Tool behavior itself can change across Go releases; repository version and CI environment govern.
 
-## Verification effort
-
-Keep effort proportional:
-- formatting/local naming: formatter plus narrow compile/test when needed;
-- expression/control-flow cleanup: affected package tests and diagnostics;
-- structural/shared code: wider dependent tests/build;
-- concurrency/external-contract changes: strict audit plus relevant race/integration evidence.
-
-Do not repeatedly rerun broad suites after reversible low-risk edits unless later changes invalidate prior evidence.
+Verification depth and rerun policy are owned by `verification.md`.
