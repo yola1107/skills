@@ -1,0 +1,5 @@
+decision: skip
+reason:
+  - typed and untyped constants differ semantically, but this fixture does not prove an observable break from removing the explicit type
+required:
+  - inspect all uses and conversion/representability context before changing the declaration
