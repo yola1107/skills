@@ -23,7 +23,7 @@ For behavior-preserving simplification, this skill supersedes overlapping style/
 4. Go semantics for the repository's declared version.
 5. External style guidance only as candidate sources.
 
-Always read `references/safety-gate.md` and `references/verification.md`. Load pass-specific and behavior-sensitive references only when relevant.
+Always read `references/safety-gate.md` and `references/verification.md`. Read `references/tooling.md` when choosing or running Go tooling. Read `references/constants-types.md` whenever a candidate touches constants, enum-like declarations, declaration forms, or explicit numeric conversions. Load other pass-specific and behavior-sensitive references only when relevant.
 
 ## Hard boundary
 
