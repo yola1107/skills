@@ -1,0 +1,5 @@
+decision: reject
+forbidden:
+  - replace the concrete functions with a reflection-based generic field reader
+reason:
+  - reflection adds runtime and cognitive cost solely to remove trivial explicit duplication
