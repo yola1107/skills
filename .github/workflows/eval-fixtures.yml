@@ -1,0 +1,25 @@
+name: eval-fixtures
+
+on:
+  push:
+    paths:
+      - "go-code-simplifier/evals/**"
+      - "scripts/validate-go-code-simplifier-evals.sh"
+      - ".github/workflows/eval-fixtures.yml"
+  pull_request:
+    paths:
+      - "go-code-simplifier/evals/**"
+      - "scripts/validate-go-code-simplifier-evals.sh"
+      - ".github/workflows/eval-fixtures.yml"
+  workflow_dispatch:
+
+jobs:
+  fixtures:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.22.x"
+      - name: Validate Go eval fixtures
+        run: bash scripts/validate-go-code-simplifier-evals.sh
