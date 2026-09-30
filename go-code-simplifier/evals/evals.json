@@ -1,0 +1,162 @@
+{
+  "skill_name": "go-code-simplifier",
+  "evals": [
+    {
+      "id": "safe-receiver-this",
+      "name": "safe receiver rename",
+      "prompt": "Simplify the attached Go code while preserving observable behavior. Apply only changes justified by the code and report what you changed.",
+      "files": [
+        "evals/safe/receiver-this/main.go"
+      ],
+      "expected_output": "Rename the receiver this to a short type-derived receiver such as s without changing the receiver type or method behavior.",
+      "assertions": [
+        "The receiver name this is replaced consistently.",
+        "The receiver remains *Server.",
+        "No unrelated redesign is introduced."
+      ]
+    },
+    {
+      "id": "safe-redundant-bool",
+      "name": "safe redundant bool",
+      "prompt": "Simplify the attached Go code while preserving observable behavior.",
+      "files": [
+        "evals/safe/redundant-bool/main.go"
+      ],
+      "expected_output": "Simplify the boolean-return boilerplate to return the boolean directly.",
+      "assertions": [
+        "The redundant branch is removed.",
+        "Boolean behavior is unchanged."
+      ]
+    },
+    {
+      "id": "safe-redundant-return",
+      "name": "safe redundant return local",
+      "prompt": "Simplify the attached Go code while preserving observable behavior.",
+      "files": [
+        "evals/safe/redundant-return-local/main.go"
+      ],
+      "expected_output": "Return twice(v) directly without changing call count or return type.",
+      "assertions": [
+        "The redundant result local is removed.",
+        "twice(v) is evaluated once."
+      ]
+    },
+    {
+      "id": "safe-error-flow",
+      "name": "safe error flow",
+      "prompt": "Simplify the attached Go code while preserving observable behavior.",
+      "files": [
+        "evals/safe/error-flow/main.go"
+      ],
+      "expected_output": "Remove the unnecessary else after a terminating return.",
+      "assertions": [
+        "The else is removed.",
+        "Error identity and behavior remain unchanged."
+      ]
+    },
+    {
+      "id": "safe-float-conversion",
+      "name": "safe redundant float conversion",
+      "prompt": "Simplify the attached Go declaration while preserving its concrete type and value.",
+      "files": [
+        "evals/safe/redundant-float-conversion/main.go"
+      ],
+      "expected_output": "Remove float64(0.1) while keeping the explicit float64 variable type.",
+      "assertions": [
+        "ratio remains explicitly float64.",
+        "The value is unchanged."
+      ]
+    },
+    {
+      "id": "trap-typed-nil",
+      "name": "typed nil trap",
+      "prompt": "Simplify the attached Go code while strictly preserving observable behavior. Skip unsafe simplifications.",
+      "files": [
+        "evals/traps/typed-nil/main.go"
+      ],
+      "expected_output": "Do not collapse run to return validate(ok), because a typed nil pointer converted to error becomes a non-nil interface.",
+      "assertions": [
+        "The response rejects the direct-return rewrite.",
+        "The typed-nil interface reason is identified."
+      ]
+    },
+    {
+      "id": "trap-nil-empty",
+      "name": "nil empty slice trap",
+      "prompt": "Simplify the attached Go code while strictly preserving observable behavior. Skip unsafe simplifications.",
+      "files": [
+        "evals/traps/nil-empty-slice/main.go"
+      ],
+      "expected_output": "Do not replace the nil slice with an allocated empty slice because observable serialization can change.",
+      "assertions": [
+        "The nil slice is not normalized to empty.",
+        "The nil-versus-empty behavior is identified."
+      ]
+    },
+    {
+      "id": "trap-independent-if",
+      "name": "independent if trap",
+      "prompt": "Simplify the attached Go control flow while strictly preserving behavior.",
+      "files": [
+        "evals/traps/independent-if/main.go"
+      ],
+      "expected_output": "Do not make the two independent conditions mutually exclusive.",
+      "assertions": [
+        "The response preserves the possibility that both branches execute.",
+        "It rejects an else-if or exclusive-switch rewrite."
+      ]
+    },
+    {
+      "id": "trap-lock-scope",
+      "name": "lock scope trap",
+      "prompt": "Simplify the attached Go code while strictly preserving concurrency behavior.",
+      "files": [
+        "evals/traps/lock-scope/main.go"
+      ],
+      "expected_output": "Do not shorten the lock scope around publish because it changes synchronization and possible interleavings.",
+      "assertions": [
+        "publish remains inside the original lock scope.",
+        "The concurrency reason is identified."
+      ]
+    },
+    {
+      "id": "trap-iota",
+      "name": "explicit values to iota trap",
+      "prompt": "Simplify the attached constants while preserving behavior and compatibility.",
+      "files": [
+        "evals/traps/explicit-values-to-iota/main.go"
+      ],
+      "expected_output": "Do not replace explicit numeric values with iota merely because they are sequential.",
+      "assertions": [
+        "Explicit numeric values are preserved.",
+        "The compatibility or future insertion semantics are recognized."
+      ]
+    },
+    {
+      "id": "ambiguous-exported-rename",
+      "name": "exported rename restraint",
+      "prompt": "Clean up the naming in the attached Go code while preserving compatibility.",
+      "files": [
+        "evals/ambiguous/exported-initialism/main.go"
+      ],
+      "expected_output": "Skip renaming ParseUrl to ParseURL without evidence that exported API compatibility is safe.",
+      "assertions": [
+        "The exported symbol is not renamed automatically.",
+        "The response identifies missing compatibility evidence."
+      ]
+    },
+    {
+      "id": "ambiguous-same-value",
+      "name": "same value constants restraint",
+      "prompt": "Simplify the attached constants without changing domain meaning.",
+      "files": [
+        "evals/ambiguous/same-value-constants/main.go"
+      ],
+      "expected_output": "Do not merge or alias the constants merely because both equal 1.",
+      "assertions": [
+        "The constants remain distinct.",
+        "The response recognizes that equal values do not prove equal domain meaning."
+      ]
+    }
+  ]
+}
