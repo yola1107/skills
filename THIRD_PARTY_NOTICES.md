@@ -41,7 +41,8 @@ SOFTWARE.
 
 - 上游仓库：[affaan-m/ECC](https://github.com/affaan-m/ECC)（原名 `everything-claude-code`）。
 - 固定上游提交：`ef648e01899ba3e8dc6371642deaaf64b4477775`；导入日期：2026-10-08。
-- `go-reviewer/SKILL.md` 来自 [agents/go-reviewer.md](https://github.com/affaan-m/ECC/blob/ef648e01899ba3e8dc6371642deaaf64b4477775/agents/go-reviewer.md)。将 Claude Code Agent 转为 Skill：移除 `tools`、`model` 字段，限定 description 的审核触发范围，加入许可与来源元数据，末尾跨技能引用改为本目录内的参考链接。审核正文及严重程度规则保持上游内容。
-- `go-reviewer/references/golang-patterns.md` 逐字节保留 [skills/golang-patterns/SKILL.md](https://github.com/affaan-m/ECC/blob/ef648e01899ba3e8dc6371642deaaf64b4477775/skills/golang-patterns/SKILL.md)，作为按需阅读的参考，不依赖另行安装技能。
+- `go-reviewer/SKILL.md` 来自 [agents/go-reviewer.md](https://github.com/affaan-m/ECC/blob/ef648e01899ba3e8dc6371642deaaf64b4477775/agents/go-reviewer.md)。导入基线提交为 `88e52c1`：Agent 转为 Skill，仅适配元数据和本地参考路径。
+- `go-reviewer/references/golang-patterns.md` 的原版 [skills/golang-patterns/SKILL.md](https://github.com/affaan-m/ECC/blob/ef648e01899ba3e8dc6371642deaaf64b4477775/skills/golang-patterns/SKILL.md) 逐字节保留在该导入基线中。
+- 当前本地修订收敛为中文 Go 审核流程与按需语义参考：补全暂存/未跟踪和目录范围、项目与 module 边界，按契约判断错误和并发生命周期，取消机械严重度阈值，移除有误或非等价的示例及未标版本的通用 lint 配置。保留上游来源和 MIT 许可，不依赖另行安装技能。
 - 本次仅导入 Go reviewer 及其直接引用的 Go patterns；未导入 ECC 的命令、hooks、配置或其他技能。
 - 上游 [LICENSE](https://github.com/affaan-m/ECC/blob/ef648e01899ba3e8dc6371642deaaf64b4477775/LICENSE) 原样保存在 [go-reviewer/LICENSE](go-reviewer/LICENSE)。Copyright (c) 2026 Affaan Mustafa；MIT License。

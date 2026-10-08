@@ -1,676 +1,83 @@
----
-name: golang-patterns
-description: Idiomatic Go patterns, best practices, and conventions for building robust, efficient, and maintainable Go applications. Use when writing or reviewing Go code and idiomatic structure or conventions are in question.
-metadata:
-  origin: ECC
----
+# Go 模式与审核边界
 
-# Go Development Patterns
+基于 ECC 的 Go patterns 收敛为审核参考。按实际代码涉及的主题阅读；示例说明具体契约，不是通用替换模板。语言和标准库行为以目标 Go 版本为准。
 
-Idiomatic Go patterns and best practices for building robust, efficient, and maintainable applications.
+## 错误与返回值
 
-## When to Activate
-
-- Writing new Go code
-- Reviewing Go code
-- Refactoring existing Go code
-- Designing Go packages/modules
-
-## Core Principles
-
-### 1. Simplicity and Clarity
-
-Go favors simplicity over cleverness. Code should be obvious and easy to read.
+- 错误包装增加上下文，也可能改变直接比较、对外消息和抽象边界。只有调用方应当检查底层原因时才通过 `%w` 暴露它；保持已有错误 identity 和部分成功结果。
+- `io.Reader.Read` 可以同时返回 `n > 0` 和 error；`io.EOF` 必须按接口约定原样返回。如下转发不应因缺少 wrapping 被报为缺陷：
 
 ```go
-// Good: Clear and direct
-func GetUser(id string) (*User, error) {
-    user, err := db.FindUser(id)
-    if err != nil {
-        return nil, fmt.Errorf("get user %s: %w", id, err)
-    }
-    return user, nil
-}
-
-// Bad: Overly clever
-func GetUser(id string) (*User, error) {
-    return func() (*User, error) {
-        if u, e := db.FindUser(id); e == nil {
-            return u, nil
-        } else {
-            return nil, e
-        }
-    }()
+func Relay(r io.Reader, dst []byte) (int, error) {
+	return r.Read(dst)
 }
 ```
 
-### 2. Make the Zero Value Useful
+- 错误 guard 可能有意清空部分结果，不能只因末尾返回就改成直返。defer 也可能读取局部 err，删除赋值前查闭包捕获。
+- 判断忽略 error 是否正确，需要知道操作是否仍可恢复、错误是否已由负责方处理、是否改变返回结果。最佳努力清理可显式 `_ =` 并说明原因；持久化、事务提交或文件写入结束时的 Close 错误可能影响正确性。
+- `errors.Is/As` 适合检查被包装的错误；不要要求所有 `err == sentinel` 一律重写，也不要为消除审核告警新增日志、重试、recover 或改掉现有错误语义。
 
-Design types so their zero value is immediately usable without initialization.
+## 共享数据与池化
+
+- slice 复制只复制描述符；append 可能复用底层数组。map、pointer、含引用字段的结构也可能共享可变数据。核对谁可修改、谁持有引用、何时转移或结束所有权。
+- `bytes.Buffer.Bytes()` 返回底层数组的别名，不能返回该切片后又 Reset/Put 同一 buffer。需要调用方独立持有结果时，必须在归还之前复制；若采用借用 API，应明确借还契约。
 
 ```go
-// Good: Zero value is useful
-type Counter struct {
-    mu    sync.Mutex
-    count int // zero value is 0, ready to use
-}
-
-func (c *Counter) Inc() {
-    c.mu.Lock()
-    c.count++
-    c.mu.Unlock()
-}
-
-// Good: bytes.Buffer works with zero value
-var buf bytes.Buffer
-buf.WriteString("hello")
-
-// Bad: Requires initialization
-type BadCounter struct {
-    counts map[string]int // nil map will panic
+func CopyResult(buf *bytes.Buffer) []byte {
+	// 返回值独立于 buffer；调用方之后可以重置或归还 buffer。
+	return bytes.Clone(buf.Bytes())
 }
 ```
 
-### 3. Accept Interfaces, Return Structs
+上例使用 `bytes.Clone`，须确认目标版本支持。复制解决所有权问题，不代表引入 sync.Pool 有性能收益；普通分配已满足需求时优先保持简单。
 
-Functions should accept interface parameters and return concrete types.
+- 不复制已使用的锁或资源 owner。缓存、快照和恢复记录可能有独立语义，不能把可推导值一律视为冗余存储。
+- nil slice 与已分配空 slice 的 JSON 表示可分别为 `null` 和 `[]`。把 `var result []T` 改为 `make([]T, 0, n)` 前，要核对空输入、序列化和调用方约定。
 
-```go
-// Good: Accepts interface, returns concrete type
-func ProcessData(r io.Reader) (*Result, error) {
-    data, err := io.ReadAll(r)
-    if err != nil {
-        return nil, err
-    }
-    return &Result{Data: data}, nil
-}
+## goroutine、取消与关闭
 
-// Bad: Returns interface (hides implementation details unnecessarily)
-func ProcessData(r io.Reader) (io.Reader, error) {
-    // ...
-}
-```
+为每条并发路径回答：谁创建、谁拥有可变数据、如何完成、阻塞在哪里、谁通知停止、哪里等待、谁关闭资源。没有某一种同步原语本身不是缺陷。
 
-## Error Handling Patterns
+- 有限工作可以自行返回；需提前停止的工作必须把取消信号传入实际阻塞点。外围 `select` 检查 ctx，不能中断此前已阻塞且不接收 ctx 的 `fetch(url)`。
+- WaitGroup 等待完成，不产生取消信号。使用 channel 关闭、结果协议或已有 errgroup 等方式也可满足完成协作；按项目依赖及 Go 版本选择。
+- 异步结果接口应说明成功、错误、取消如何通知调用方。失败时直接 return 而不发送结果、不关闭 channel，会让只等待结果的调用方一直阻塞。缓冲区大小为 1 不能解决这个完成协议缺口。
+- 发送方和关闭方须有明确顺序证明；sync.Once 只防止重复执行，不能证明已经没有发送者。不要假设 select 会优先选择取消 case。
+- worker pool 要核对输入结束、下游停止接收、首个错误和取消时的退出路径；fan-out 的规模按实际输入界限控制。不要把完整停止协议简化为一个通用示例。
+- 传递 pointer 或 slice 可以是正确的所有权转移；改为按值发送并不保证深复制。锁内 I/O 可能维持必要不变量，移出锁或换成 RWMutex/atomic 前须证明契约仍成立。
+- defer 在函数退出时执行，登记时参数求值与闭包执行时读取不同。提取循环体为 helper 会改变关闭/解锁时点；是否改善资源管理取决于原协议。
 
-### Error Wrapping with Context
+## 类型、接口和结构
 
-```go
-// Good: Wrap errors with context
-func LoadConfig(path string) (*Config, error) {
-    data, err := os.ReadFile(path)
-    if err != nil {
-        return nil, fmt.Errorf("load config %s: %w", path, err)
-    }
+- 接口通常定义在使用方、按实际行为需求保持聚焦；不为 mock 便利或假设的第二个实现增加接口。返回具体类型与返回接口都可能正确，取决于 API 需要暴露的能力和兼容约束。
+- 可用零值能降低调用成本，但不是所有类型的硬性要求。数据库、配置校验和资源初始化往往需要构造过程；nil map 读/遍历与写入的行为不同。
+- 评估同形代码是否属于同一职责，核对输入、失败、顺序和状态所有者，再决定共享。helper 若只转发且没有独立契约可内联；承担边界转换、锁、事务或兼容的包装可能必要。
+- 接收者类型、方法集和嵌入影响接口实现、复制语义及公开 API。局部改名还要核对遮蔽、闭包和生成/反射引用。工具的符号重命名不证明所有外部消费者兼容；当前仓内调用方满足某个初始化前提，也不证明该前提约束所有公开方法调用。删除无用结果的计算前，仍须核对原有断言、索引和 panic 路径。
+- 命名、声明分组、错误路径和主流程应帮助读者区分角色与阶段。过长函数只是调查线索：说明它混合了什么职责、增加了什么维护成本，而不是按行数拆分。
+- 不把某种目录布局、Functional Options、依赖注入框架或表驱动测试规定为唯一正确方案。沿用项目既有模式，改进须有当前收益。
 
-    var cfg Config
-    if err := json.Unmarshal(data, &cfg); err != nil {
-        return nil, fmt.Errorf("parse config %s: %w", path, err)
-    }
+## 数值、随机与性能
 
-    return &cfg, nil
-}
-```
+- 审查单位、整数宽度、溢出、舍入及金额/概率边界。浮点重排、随机调用提前或合并、map 遍历顺序都可能改变业务结果；编译和普通样例通过不足以证明等价。
+- 用 strings.Builder 或 strings.Join 替代拼接前，核对分隔符、尾随字符、空输入及每项转换。`"a,b,"` 与 `"a,b"` 不等价。
+- 切片预分配须保留 nil/空区别、顺序、长度和共享关系；缓存须有权威来源与失效条件。测量优化前先明确目标负载和已有复杂度，不根据单个语法模式下性能结论。
+- 性能验证按项目入口使用同条件 benchmark/profile；并发正确性用可控同步和有界超时覆盖相关路径。计时器、重试和 Context 修改也要核对起算点、截止时间与外部效果是否已经发生。
 
-### Custom Error Types
+## 安全边界
 
-```go
-// Define domain-specific errors
-type ValidationError struct {
-    Field   string
-    Message string
-}
+- SQL 值参数化，动态表名/排序项使用白名单；静态内部字符串拼接不自动构成注入。命令参数与 shell 解释分别判断，沿不可信输入追踪实际调用。
+- 用户登录不证明资源授权，核对租户、资源归属和查询范围。秘密只报告位置，不复制到发现正文或日志。
+- 路径防护考虑相对路径、绝对路径、平台特殊名称、符号链接及 TOCTOU。字符串前缀无法证明文件仍在根目录内；按目标版本评估 `os.Root` 等边界 API 或项目已有等效实现。
+- 超时不证明外部写入失败；重试、幂等键、事务 owner 及恢复证据要沿实际调用链核验。错误包装和日志不能把中间阶段伪装为最终成功。
 
-func (e *ValidationError) Error() string {
-    return fmt.Sprintf("validation failed on %s: %s", e.Field, e.Message)
-}
+## 工具与验证
 
-// Sentinel errors for common cases
-var (
-    ErrNotFound     = errors.New("resource not found")
-    ErrUnauthorized = errors.New("unauthorized")
-    ErrInvalidInput = errors.New("invalid input")
-)
-```
+先确定 module、Go/toolchain、build tags 和项目 CI/lint 配置，再选受影响包的检查。现有工具缺失不自动安装，静态检查配置按项目固定版本读取，不复制未标版本的通用配置。
 
-### Error Checking with errors.Is and errors.As
+- `go test <受影响包>`：确认实际执行了相关测试，而非只编译或跳过。
+- `go vet <受影响包>`：定位可执行的诊断，结合调用链核实。
+- `go test -race <相关包>`：执行并发路径；无报告只说明本次执行未触发竞态。
+- `staticcheck`、`golangci-lint`、`govulncheck`：按项目入口和任务风险使用。工具输出不是完整审核结论。
 
-```go
-func HandleError(err error) {
-    // Check for specific error
-    if errors.Is(err, sql.ErrNoRows) {
-        log.Println("No records found")
-        return
-    }
+只读审核不修改格式、依赖或生成文件，也不启动业务服务。检查 TestMain、init、环境变量及外部资源；需要有副作用的复现时使用隔离副本。已授权修改则按项目规则运行 gofmt、相关测试和 vet，并区分新增回归、原有失败与环境缺口。
 
-    // Check for error type
-    var validationErr *ValidationError
-    if errors.As(err, &validationErr) {
-        log.Printf("Validation error on field %s: %s",
-            validationErr.Field, validationErr.Message)
-        return
-    }
-
-    // Unknown error
-    log.Printf("Unexpected error: %v", err)
-}
-```
-
-### Never Ignore Errors
-
-```go
-// Bad: Ignoring error with blank identifier
-result, _ := doSomething()
-
-// Good: Handle or explicitly document why it's safe to ignore
-result, err := doSomething()
-if err != nil {
-    return err
-}
-
-// Acceptable: When error truly doesn't matter (rare)
-_ = writer.Close() // Best-effort cleanup, error logged elsewhere
-```
-
-## Concurrency Patterns
-
-### Worker Pool
-
-```go
-func WorkerPool(jobs <-chan Job, results chan<- Result, numWorkers int) {
-    var wg sync.WaitGroup
-
-    for i := 0; i < numWorkers; i++ {
-        wg.Add(1)
-        go func() {
-            defer wg.Done()
-            for job := range jobs {
-                results <- process(job)
-            }
-        }()
-    }
-
-    wg.Wait()
-    close(results)
-}
-```
-
-### Context for Cancellation and Timeouts
-
-```go
-func FetchWithTimeout(ctx context.Context, url string) ([]byte, error) {
-    ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
-    defer cancel()
-
-    req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
-    if err != nil {
-        return nil, fmt.Errorf("create request: %w", err)
-    }
-
-    resp, err := http.DefaultClient.Do(req)
-    if err != nil {
-        return nil, fmt.Errorf("fetch %s: %w", url, err)
-    }
-    defer resp.Body.Close()
-
-    return io.ReadAll(resp.Body)
-}
-```
-
-### Graceful Shutdown
-
-```go
-func GracefulShutdown(server *http.Server) {
-    quit := make(chan os.Signal, 1)
-    signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-
-    <-quit
-    log.Println("Shutting down server...")
-
-    ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-    defer cancel()
-
-    if err := server.Shutdown(ctx); err != nil {
-        log.Fatalf("Server forced to shutdown: %v", err)
-    }
-
-    log.Println("Server exited")
-}
-```
-
-### errgroup for Coordinated Goroutines
-
-```go
-import "golang.org/x/sync/errgroup"
-
-func FetchAll(ctx context.Context, urls []string) ([][]byte, error) {
-    g, ctx := errgroup.WithContext(ctx)
-    results := make([][]byte, len(urls))
-
-    for i, url := range urls {
-        i, url := i, url // Capture loop variables
-        g.Go(func() error {
-            data, err := FetchWithTimeout(ctx, url)
-            if err != nil {
-                return err
-            }
-            results[i] = data
-            return nil
-        })
-    }
-
-    if err := g.Wait(); err != nil {
-        return nil, err
-    }
-    return results, nil
-}
-```
-
-### Avoiding Goroutine Leaks
-
-```go
-// Bad: Goroutine leak if context is cancelled
-func leakyFetch(ctx context.Context, url string) <-chan []byte {
-    ch := make(chan []byte)
-    go func() {
-        data, _ := fetch(url)
-        ch <- data // Blocks forever if no receiver
-    }()
-    return ch
-}
-
-// Good: Properly handles cancellation
-func safeFetch(ctx context.Context, url string) <-chan []byte {
-    ch := make(chan []byte, 1) // Buffered channel
-    go func() {
-        data, err := fetch(url)
-        if err != nil {
-            return
-        }
-        select {
-        case ch <- data:
-        case <-ctx.Done():
-        }
-    }()
-    return ch
-}
-```
-
-## Interface Design
-
-### Small, Focused Interfaces
-
-```go
-// Good: Single-method interfaces
-type Reader interface {
-    Read(p []byte) (n int, err error)
-}
-
-type Writer interface {
-    Write(p []byte) (n int, err error)
-}
-
-type Closer interface {
-    Close() error
-}
-
-// Compose interfaces as needed
-type ReadWriteCloser interface {
-    Reader
-    Writer
-    Closer
-}
-```
-
-### Define Interfaces Where They're Used
-
-```go
-// In the consumer package, not the provider
-package service
-
-// UserStore defines what this service needs
-type UserStore interface {
-    GetUser(id string) (*User, error)
-    SaveUser(user *User) error
-}
-
-type Service struct {
-    store UserStore
-}
-
-// Concrete implementation can be in another package
-// It doesn't need to know about this interface
-```
-
-### Optional Behavior with Type Assertions
-
-```go
-type Flusher interface {
-    Flush() error
-}
-
-func WriteAndFlush(w io.Writer, data []byte) error {
-    if _, err := w.Write(data); err != nil {
-        return err
-    }
-
-    // Flush if supported
-    if f, ok := w.(Flusher); ok {
-        return f.Flush()
-    }
-    return nil
-}
-```
-
-## Package Organization
-
-### Standard Project Layout
-
-```text
-myproject/
-├── cmd/
-│   └── myapp/
-│       └── main.go           # Entry point
-├── internal/
-│   ├── handler/              # HTTP handlers
-│   ├── service/              # Business logic
-│   ├── repository/           # Data access
-│   └── config/               # Configuration
-├── pkg/
-│   └── client/               # Public API client
-├── api/
-│   └── v1/                   # API definitions (proto, OpenAPI)
-├── testdata/                 # Test fixtures
-├── go.mod
-├── go.sum
-└── Makefile
-```
-
-### Package Naming
-
-```go
-// Good: Short, lowercase, no underscores
-package http
-package json
-package user
-
-// Bad: Verbose, mixed case, or redundant
-package httpHandler
-package json_parser
-package userService // Redundant 'Service' suffix
-```
-
-### Avoid Package-Level State
-
-```go
-// Bad: Global mutable state
-var db *sql.DB
-
-func init() {
-    db, _ = sql.Open("postgres", os.Getenv("DATABASE_URL"))
-}
-
-// Good: Dependency injection
-type Server struct {
-    db *sql.DB
-}
-
-func NewServer(db *sql.DB) *Server {
-    return &Server{db: db}
-}
-```
-
-## Struct Design
-
-### Functional Options Pattern
-
-```go
-type Server struct {
-    addr    string
-    timeout time.Duration
-    logger  *log.Logger
-}
-
-type Option func(*Server)
-
-func WithTimeout(d time.Duration) Option {
-    return func(s *Server) {
-        s.timeout = d
-    }
-}
-
-func WithLogger(l *log.Logger) Option {
-    return func(s *Server) {
-        s.logger = l
-    }
-}
-
-func NewServer(addr string, opts ...Option) *Server {
-    s := &Server{
-        addr:    addr,
-        timeout: 30 * time.Second, // default
-        logger:  log.Default(),    // default
-    }
-    for _, opt := range opts {
-        opt(s)
-    }
-    return s
-}
-
-// Usage
-server := NewServer(":8080",
-    WithTimeout(60*time.Second),
-    WithLogger(customLogger),
-)
-```
-
-### Embedding for Composition
-
-```go
-type Logger struct {
-    prefix string
-}
-
-func (l *Logger) Log(msg string) {
-    fmt.Printf("[%s] %s\n", l.prefix, msg)
-}
-
-type Server struct {
-    *Logger // Embedding - Server gets Log method
-    addr    string
-}
-
-func NewServer(addr string) *Server {
-    return &Server{
-        Logger: &Logger{prefix: "SERVER"},
-        addr:   addr,
-    }
-}
-
-// Usage
-s := NewServer(":8080")
-s.Log("Starting...") // Calls embedded Logger.Log
-```
-
-## Memory and Performance
-
-### Preallocate Slices When Size is Known
-
-```go
-// Bad: Grows slice multiple times
-func processItems(items []Item) []Result {
-    var results []Result
-    for _, item := range items {
-        results = append(results, process(item))
-    }
-    return results
-}
-
-// Good: Single allocation
-func processItems(items []Item) []Result {
-    results := make([]Result, 0, len(items))
-    for _, item := range items {
-        results = append(results, process(item))
-    }
-    return results
-}
-```
-
-### Use sync.Pool for Frequent Allocations
-
-```go
-var bufferPool = sync.Pool{
-    New: func() interface{} {
-        return new(bytes.Buffer)
-    },
-}
-
-func ProcessRequest(data []byte) []byte {
-    buf := bufferPool.Get().(*bytes.Buffer)
-    defer func() {
-        buf.Reset()
-        bufferPool.Put(buf)
-    }()
-
-    buf.Write(data)
-    // Process...
-    return buf.Bytes()
-}
-```
-
-### Avoid String Concatenation in Loops
-
-```go
-// Bad: Creates many string allocations
-func join(parts []string) string {
-    var result string
-    for _, p := range parts {
-        result += p + ","
-    }
-    return result
-}
-
-// Good: Single allocation with strings.Builder
-func join(parts []string) string {
-    var sb strings.Builder
-    for i, p := range parts {
-        if i > 0 {
-            sb.WriteString(",")
-        }
-        sb.WriteString(p)
-    }
-    return sb.String()
-}
-
-// Best: Use standard library
-func join(parts []string) string {
-    return strings.Join(parts, ",")
-}
-```
-
-## Go Tooling Integration
-
-### Essential Commands
-
-```bash
-# Build and run
-go build ./...
-go run ./cmd/myapp
-
-# Testing
-go test ./...
-go test -race ./...
-go test -cover ./...
-
-# Static analysis
-go vet ./...
-staticcheck ./...
-golangci-lint run
-
-# Module management
-go mod tidy
-go mod verify
-
-# Formatting
-gofmt -w .
-goimports -w .
-```
-
-### Recommended Linter Configuration (.golangci.yml)
-
-```yaml
-linters:
-  enable:
-    - errcheck
-    - gosimple
-    - govet
-    - ineffassign
-    - staticcheck
-    - unused
-    - gofmt
-    - goimports
-    - misspell
-    - unconvert
-    - unparam
-
-linters-settings:
-  errcheck:
-    check-type-assertions: true
-  govet:
-    enable:
-      - shadow
-
-issues:
-  exclude-use-default: false
-```
-
-## Quick Reference: Go Idioms
-
-| Idiom | Description |
-|-------|-------------|
-| Accept interfaces, return structs | Functions accept interface params, return concrete types |
-| Errors are values | Treat errors as first-class values, not exceptions |
-| Don't communicate by sharing memory | Use channels for coordination between goroutines |
-| Make the zero value useful | Types should work without explicit initialization |
-| A little copying is better than a little dependency | Avoid unnecessary external dependencies |
-| Clear is better than clever | Prioritize readability over cleverness |
-| gofmt is no one's favorite but everyone's friend | Always format with gofmt/goimports |
-| Return early | Handle errors first, keep happy path unindented |
-
-## Anti-Patterns to Avoid
-
-```go
-// Bad: Naked returns in long functions
-func process() (result int, err error) {
-    // ... 50 lines ...
-    return // What is being returned?
-}
-
-// Bad: Using panic for control flow
-func GetUser(id string) *User {
-    user, err := db.Find(id)
-    if err != nil {
-        panic(err) // Don't do this
-    }
-    return user
-}
-
-// Bad: Passing context in struct
-type Request struct {
-    ctx context.Context // Context should be first param
-    ID  string
-}
-
-// Good: Context as first parameter
-func ProcessRequest(ctx context.Context, id string) error {
-    // ...
-}
-
-// Bad: Mixing value and pointer receivers
-type Counter struct{ n int }
-func (c Counter) Value() int { return c.n }    // Value receiver
-func (c *Counter) Increment() { c.n++ }        // Pointer receiver
-// Pick one style and be consistent
-```
-
-**Remember**: Go code should be boring in the best way - predictable, consistent, and easy to understand. When in doubt, keep it simple.
+权威语义参考：[io](https://pkg.go.dev/io)、[bytes.Buffer.Bytes](https://pkg.go.dev/bytes#Buffer.Bytes)、[sync](https://pkg.go.dev/sync)、[Go 路径边界](https://go.dev/blog/osroot)。查证时核对目标版本，不因参考内容更新而升级项目。
