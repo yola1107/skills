@@ -3,15 +3,21 @@
 本仓库提供用于 Go 项目的 Codex 技能。
 
 - [go-code-simplifier](go-code-simplifier/SKILL.md)：清理指定范围内的 Go 代码，包括测试文件，保持可观察行为不变。
+- [code-review-and-quality](code-review-and-quality/SKILL.md)：只读审核指定变更或代码范围，给出有证据的质量发现与验证结论。
+- [code-simplification](code-simplification/SKILL.md)：简化命名、表达式、控制流、重复逻辑和代码结构，保持行为等价。
+
+两个 Addy 技能保留上游原文，仅平铺目录并修正审核技能的两处内部引用路径；尚未定制。来源、原版基线和版权声明统一见 [第三方来源](THIRD_PARTY_NOTICES.md)。
 
 ## 使用
 
-将 `go-code-simplifier/` 目录复制到目标项目的 `.agents/skills/` 下，确保入口为 `.agents/skills/go-code-simplifier/SKILL.md`。
+将需要的完整技能目录复制到目标项目的 `.agents/skills/` 下，确保入口为 `.agents/skills/<技能名>/SKILL.md`；`code-review-and-quality` 的 `references/` 一并复制。分发两个 Addy 技能时，在目标项目的第三方声明中保留相应来源与许可。
 
 在目标项目的 Codex 会话中输入：
 
 ```text
 $go-code-simplifier 等价行为清理 internal/service，包括测试文件。
+$code-simplification 简化 internal/service 中的重复规则和冗余包装，保持行为等价。
+$code-review-and-quality 审核当前未提交改动，只读报告问题与验证缺口。
 ```
 
 将 `internal/service` 替换为目标文件或目录。技能遵循目标项目的规则、Go 兼容版本和构建配置；详细清理规则统一维护在对应的 `SKILL.md` 中。
