@@ -37,6 +37,22 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
+## Anthropic Claude Code Simplifier
+
+- 上游仓库：[anthropics/claude-plugins-official](https://github.com/anthropics/claude-plugins-official)。
+- 固定上游提交：`f713a7c59b729741282f9c2d9a04e28e2abbd20c`；借鉴日期：2026-10-09。
+- 来源：[plugins/code-simplifier/agents/code-simplifier.md](https://github.com/anthropics/claude-plugins-official/blob/f713a7c59b729741282f9c2d9a04e28e2abbd20c/plugins/code-simplifier/agents/code-simplifier.md)。
+- `go-code-simplifier/SKILL.md` 借鉴其五条清理原则和简短执行流程，改写为中文 Go Skill：替换 JavaScript／React 约定，保留本地范围、一字段一行和行为等价要求；Go 专项检查迁入 `references/go-equivalence.md` 按需读取。未导入上游模型配置、插件注册或自动执行策略。
+- 上游插件采用 Apache-2.0；[go-code-simplifier/LICENSE](go-code-simplifier/LICENSE) 从上述固定提交逐字节保留。已有 Addy Osmani 合并内容的来源与 MIT 许可仍按前节保留。
+
+## samber/cc-skills-golang
+
+- 上游仓库：[samber/cc-skills-golang](https://github.com/samber/cc-skills-golang)。
+- 固定上游提交：`8e899e20ff0cd4dc524af3993e4c62d8ee8c5717`；借鉴日期：2026-10-09。
+- 参考 [golang-naming](https://github.com/samber/cc-skills-golang/blob/8e899e20ff0cd4dc524af3993e4c62d8ee8c5717/skills/golang-naming/SKILL.md)、[golang-code-style](https://github.com/samber/cc-skills-golang/blob/8e899e20ff0cd4dc524af3993e4c62d8ee8c5717/skills/golang-code-style/SKILL.md)、[golang-refactoring](https://github.com/samber/cc-skills-golang/blob/8e899e20ff0cd4dc524af3993e4c62d8ee8c5717/skills/golang-refactoring/SKILL.md) 及其 identifiers、details、go-tooling、safety-net 参考资料。
+- 本地择要中文重述命名去重、复杂条件表达、工具能力边界及按改动路径建立行为测试的建议，合入 `go-code-simplifier/SKILL.md` 与 `references/go-equivalence.md`；保留本地三组 imports 和一字段一行约定。未导入上游技能、审批／提交编排、覆盖率阈值或可能改变既有行为的强制风格规则。
+- 上游采用 MIT 许可；[go-code-simplifier/LICENSE.samber](go-code-simplifier/LICENSE.samber) 从固定提交逐字节保留。Copyright (c) 2026 Samuel Berthe；与前述 Apache-2.0 和已有 MIT 来源分别保留。
+
 ## ECC
 
 - 上游仓库：[affaan-m/ECC](https://github.com/affaan-m/ECC)（原名 `everything-claude-code`）。
