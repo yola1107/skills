@@ -6,11 +6,11 @@
 - [code-review-and-quality](code-review-and-quality/SKILL.md)：只读审核指定变更或代码范围，给出有证据的质量发现与验证结论。
 - [code-simplification](code-simplification/SKILL.md)：简化命名、表达式、控制流、重复逻辑和代码结构，保持行为等价。
 
-两个 Addy 技能保留上游原文，仅平铺目录并修正审核技能的两处内部引用路径；尚未定制。来源、原版基线和版权声明统一见 [第三方来源](THIRD_PARTY_NOTICES.md)。
+两个 Addy 技能在保留上游章节、来源署名和参考资料的基础上，修正执行边界与非等价示例，并分别补充独立的 Go 专项参考。来源、原版基线和版权声明统一见 [第三方来源](THIRD_PARTY_NOTICES.md)。
 
 ## 使用
 
-将需要的完整技能目录复制到目标项目的 `.agents/skills/` 下，确保入口为 `.agents/skills/<技能名>/SKILL.md`；`code-review-and-quality` 的 `references/` 一并复制。分发两个 Addy 技能时，在目标项目的第三方声明中保留相应来源与许可。
+将需要的完整技能目录复制到目标项目的 `.agents/skills/` 下，确保入口为 `.agents/skills/<技能名>/SKILL.md`，目录内的 `references/` 一并复制。每个技能独立使用。分发两个 Addy 技能时，在目标项目的第三方声明中保留相应来源与许可。
 
 在目标项目的 Codex 会话中输入：
 
