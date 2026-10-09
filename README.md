@@ -3,13 +3,13 @@
 本仓库提供用于 Go 项目的 Codex 技能。
 
 - [go-code-simplifier](go-code-simplifier/SKILL.md)：清理指定范围内的 Go 代码，包括测试文件；简化命名、表达式、控制流、重复逻辑和冗余包装，保持可观察行为不变。
-- [go-reviewer](go-reviewer/SKILL.md)：基于 ECC 修订的 Go 专项审核，覆盖正确性、错误契约、并发和资源生命周期、可维护性、安全及性能；附带按需参考和 MIT 许可证。
+- [go-reviewer](go-reviewer/SKILL.md)：基于 ECC 修订的 Go 专项审核，覆盖正确性、错误契约、并发和资源生命周期、可维护性、安全及性能；附带按需参考。
 
-Go 清理规则统一维护在 `go-code-simplifier`，Go 审核入口为 `go-reviewer`。审核技能基于 ECC 固定提交本地修订，按具体契约核实发现，避免把风格模式直接当成缺陷。来源、合并关系、原版基线和版权声明统一见 [第三方来源](THIRD_PARTY_NOTICES.md)。
+Go 清理规则统一维护在 `go-code-simplifier`，Go 审核入口为 `go-reviewer`。审核技能基于 ECC 固定提交本地修订，按具体契约核实发现，避免把风格模式直接当成缺陷。来源、合并关系、原版基线、版权声明与许可正文统一见 [第三方来源](THIRD_PARTY_NOTICES.md)。
 
 ## 使用
 
-将需要的完整技能目录复制到目标项目的 `.agents/skills/` 下，确保入口为 `.agents/skills/<技能名>/SKILL.md`，如有 `references/` 和 `LICENSE` 则一并复制。每个技能独立使用。分发时，在目标项目的第三方声明中保留相应来源与许可。
+将需要的完整技能目录及其 `references/` 复制到目标项目的 `.agents/skills/` 下，确保入口为 `.agents/skills/<技能名>/SKILL.md`。同时将根目录的 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) 复制到 `.agents/skills/THIRD_PARTY_NOTICES.md`，集中随附来源、版权与许可。每个技能独立使用，分发时一并保留这份声明。
 
 在目标项目的 Codex 会话中输入：
 
