@@ -1,10 +1,11 @@
 # Go 模式与审核边界
 
-基于 ECC 的 Go patterns 收敛为审核参考。按实际代码涉及的主题阅读；示例说明具体契约，不是通用替换模板。语言和标准库行为以目标 Go 版本为准。
+基于 ECC 的 Go patterns 与 samber/cc-skills-golang 的选定规则收敛为审核参考。按实际代码涉及的主题阅读；示例说明具体契约，不是通用替换模板。语言和标准库行为以目标 Go 版本为准；来源与许可集中记录于仓库外层声明。
 
 ## 错误与返回值
 
 - 错误包装增加上下文，也可能改变直接比较、对外消息和抽象边界。只有调用方应当检查底层原因时才通过 `%w` 暴露它；保持已有错误 identity 和部分成功结果。
+- 返回或赋给 error／interface 的 typed nil 仍可能带有动态类型，使 `err != nil` 或接口分派进入不同路径。沿实际赋值、返回和调用判断；明确支持 nil receiver 的方法可以正确，不因出现 nil 指针就自动报告缺陷。
 - `io.Reader.Read` 可以同时返回 `n > 0` 和 error；`io.EOF` 必须按接口约定原样返回。如下转发不应因缺少 wrapping 被报为缺陷：
 
 ```go
@@ -31,7 +32,7 @@ func CopyResult(buf *bytes.Buffer) []byte {
 
 上例使用 `bytes.Clone`，须确认目标版本支持。复制解决所有权问题，不代表引入 sync.Pool 有性能收益；普通分配已满足需求时优先保持简单。
 
-- 不复制已使用的锁或资源 owner。缓存、快照和恢复记录可能有独立语义，不能把可推导值一律视为冗余存储。
+- 核对值接收者、赋值、返回和 range 是否复制了已使用的 Mutex、RWMutex、Once、WaitGroup、typed atomic 或其他禁止复制的值；结合实际首次使用路径和 copylocks 诊断判断。普通 pointer／channel 字段的复制是共享引用，不等于复制锁状态。缓存、快照和恢复记录可能有独立语义，不能把可推导值一律视为冗余存储。
 - nil slice 与已分配空 slice 的 JSON 表示可分别为 `null` 和 `[]`。把 `var result []T` 改为 `make([]T, 0, n)` 前，要核对空输入、序列化和调用方约定。
 
 ## goroutine、取消与关闭
@@ -39,11 +40,15 @@ func CopyResult(buf *bytes.Buffer) []byte {
 为每条并发路径回答：谁创建、谁拥有可变数据、如何完成、阻塞在哪里、谁通知停止、哪里等待、谁关闭资源。没有某一种同步原语本身不是缺陷。
 
 - 有限工作可以自行返回；需提前停止的工作必须把取消信号传入实际阻塞点。外围 `select` 检查 ctx，不能中断此前已阻塞且不接收 ctx 的 `fetch(url)`。
+- 沿请求到数据库、HTTP 和其他阻塞操作检查 Context 传播。中途改用 Background／TODO 可能丢失调用方取消、截止时间或值；明确需要脱离请求的后台任务仍须有自己的 owner、完成与退出契约，不能机械换成 WithoutCancel。
+- WithCancel／WithTimeout／WithDeadline 的取消责任须覆盖所有退出路径，除非 Context 与 CancelFunc 的责任已明确转移；循环中延迟到函数退出才 cancel 可能延长资源生命周期。Context values 用于请求元数据，若隐藏业务参数或使用可冲突的 key，说明实际依赖或覆盖路径。
 - WaitGroup 等待完成，不产生取消信号。使用 channel 关闭、结果协议或已有 errgroup 等方式也可满足完成协作；按项目依赖及 Go 版本选择。
+- 核对 WaitGroup 的登记是否发生在 Wait 可能观察到零计数之前，不把 Add 放入新 goroutine 后就假定已登记。使用 errgroup 时核对首错传播和等待路径；WithContext 的派生 Context 在 Wait 返回时也会取消，不能用于随后仍需运行的阶段。
 - 异步结果接口应说明成功、错误、取消如何通知调用方。失败时直接 return 而不发送结果、不关闭 channel，会让只等待结果的调用方一直阻塞。缓冲区大小为 1 不能解决这个完成协议缺口。
 - 发送方和关闭方须有明确顺序证明；sync.Once 只防止重复执行，不能证明已经没有发送者。不要假设 select 会优先选择取消 case。
 - worker pool 要核对输入结束、下游停止接收、首个错误和取消时的退出路径；fan-out 的规模按实际输入界限控制。不要把完整停止协议简化为一个通用示例。
 - 传递 pointer 或 slice 可以是正确的所有权转移；改为按值发送并不保证深复制。锁内 I/O 可能维持必要不变量，移出锁或换成 RWMutex/atomic 前须证明契约仍成立。
+- 单个 atomic 字段不自动保护多字段不变量；sync.Map 的适用性按写一次多次读取或分离 key 等真实访问模式判断，不能仅凭“读多写少”要求替换。sync.Once 不自动重试初始化失败，核对一次性语义是否符合失败与重试契约。
 - defer 在函数退出时执行，登记时参数求值与闭包执行时读取不同。提取循环体为 helper 会改变关闭/解锁时点；是否改善资源管理取决于原协议。
 
 ## 类型、接口和结构
@@ -69,6 +74,14 @@ func CopyResult(buf *bytes.Buffer) []byte {
 - 路径防护考虑相对路径、绝对路径、平台特殊名称、符号链接及 TOCTOU。字符串前缀无法证明文件仍在根目录内；按目标版本评估 `os.Root` 等边界 API 或项目已有等效实现。
 - 超时不证明外部写入失败；重试、幂等键、事务 owner 及恢复证据要沿实际调用链核验。错误包装和日志不能把中间阶段伪装为最终成功。
 
+## 测试契约与可重复性
+
+- 断言应覆盖实际输出、错误、状态及副作用；定位新增或修改行为的成功、失败和边界覆盖缺口。现有 mock、断言库或非表驱动形式本身不是问题，不强制测试布局、覆盖率阈值或新增框架。
+- 并行测试核对全局变量、环境、cwd、固定端口和共享 fixture 的隔离。t.Setenv／t.Chdir 等进程级操作遵守目标 testing API 的并行限制；缺少 t.Parallel 本身不是缺陷。
+- 并行子测试使用的资源不能在父测试返回时提前释放；按 t.Cleanup 与所有子测试的实际完成顺序判断。捕获 *testing.T 的断言 helper 应绑定当前测试／子测试，避免失败记在错误的作用域。
+- Fatal／FailNow／SkipNow 须在运行对应测试的 goroutine 调用；工作 goroutine 的结果与失败须正确传回，且在测试结束前完成等待。不要用固定 sleep 代替完成协议，也不因 worker 没调用 Fatal 就要求添加它。
+- 按模块及文件语言版本判断循环变量捕获：Go 1.22 起由循环声明的变量逐次创建，预声明后用 `=` 赋值仍会复用。不能机械要求所有闭包前都写 `tt := tt`；查看实际捕获、修改和并行时点。
+
 ## 工具与验证
 
 先确定 module、Go/toolchain、build tags 和项目 CI/lint 配置，再选受影响包的检查。现有工具缺失不自动安装，静态检查配置按项目固定版本读取，不复制未标版本的通用配置。
@@ -78,6 +91,6 @@ func CopyResult(buf *bytes.Buffer) []byte {
 - `go test -race <相关包>`：执行并发路径；无报告只说明本次执行未触发竞态。
 - `staticcheck`、`golangci-lint`、`govulncheck`：按项目入口和任务风险使用。工具输出不是完整审核结论。
 
-只读审核不修改格式、依赖或生成文件，也不启动业务服务。检查 TestMain、init、环境变量及外部资源；需要有副作用的复现时使用隔离副本。已授权修改则按项目规则运行 gofmt、相关测试和 vet，并区分新增回归、原有失败与环境缺口。
+只读审核不修改格式、依赖或生成文件，也不启动业务服务。检查 Go/toolchain、`GOFLAGS` 和 module/vendor 模式；加载包可能更新 `go.mod`／`go.sum`，测试也可能写相对路径的 fixture、快照或产物。`go test`、`go vet`、race 和项目静态检查等会加载 module 或执行代码的命令均在隔离副本运行；原树只做读取与状态核对。副本须包含受审状态、相关未跟踪内容及构建必需文件，不能只复制 HEAD；执行前检查 TestMain、init、环境变量及外部资源，执行后复核原工作树与索引。无法建立等价隔离环境时报告缺口，不以修改依赖或覆盖项目构建模式制造通过结果。已授权修改则按项目规则运行 gofmt、相关测试和 vet，并区分新增回归、原有失败与环境缺口。
 
-权威语义参考：[io](https://pkg.go.dev/io)、[bytes.Buffer.Bytes](https://pkg.go.dev/bytes#Buffer.Bytes)、[sync](https://pkg.go.dev/sync)、[Go 路径边界](https://go.dev/blog/osroot)。查证时核对目标版本，不因参考内容更新而升级项目。
+权威语义参考：[语言规范](https://go.dev/ref/spec)、[io](https://pkg.go.dev/io)、[bytes.Buffer.Bytes](https://pkg.go.dev/bytes#Buffer.Bytes)、[Context](https://pkg.go.dev/context)、[sync](https://pkg.go.dev/sync)、[errgroup](https://pkg.go.dev/golang.org/x/sync/errgroup)、[testing](https://pkg.go.dev/testing)、[Go modules](https://go.dev/ref/mod)、[Go 路径边界](https://go.dev/blog/osroot)。查证时核对目标版本，不因参考内容更新而升级项目。

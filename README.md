@@ -3,9 +3,9 @@
 本仓库提供用于 Go 项目的 Codex 技能。
 
 - [go-code-simplifier](go-code-simplifier/SKILL.md)：清理指定范围内的 Go 代码，包括测试文件；简化命名、表达式、控制流、重复逻辑和冗余包装，保持可观察行为不变。
-- [go-reviewer](go-reviewer/SKILL.md)：基于 ECC 修订的 Go 专项审核，覆盖正确性、错误契约、并发和资源生命周期、可维护性、安全及性能；附带按需参考。
+- [go-reviewer](go-reviewer/SKILL.md)：基于 ECC 并提炼 samber/cc-skills-golang 规则的 Go 专项审核，覆盖正确性、错误契约、并发和资源生命周期、测试质量、可维护性、安全及性能；附带按需参考。
 
-Go 清理规则统一维护在 `go-code-simplifier`，Go 审核入口为 `go-reviewer`。审核技能基于 ECC 固定提交本地修订，按具体契约核实发现，避免把风格模式直接当成缺陷。来源、合并关系、原版基线、版权声明与许可正文统一见 [第三方来源](THIRD_PARTY_NOTICES.md)。
+Go 清理入口为 `go-code-simplifier`，Go 审核入口为 `go-reviewer`。两者遵循项目约定及相同的默认可读性规则；各自完整维护执行边界和按需参考，可独立使用。审核技能按固定上游版本择要修订，沿具体契约核实发现，避免把风格模式直接当成缺陷。来源、合并关系、原版基线、版权声明与许可正文统一见 [第三方来源](THIRD_PARTY_NOTICES.md)。
 
 ## 使用
 
