@@ -49,6 +49,7 @@ func execute() error {
 - 保持锁范围、顺序及锁内调用，取消、goroutine／channel 生命周期、收发与背压，以及资源创建、回滚和关闭时点。
 - defer 调用登记时求值，闭包可能执行时读取；保持捕获、执行顺序和 panic／recover。循环体移入 helper 可能提前解锁或关闭资源，recover 也须保持与延迟函数的直接调用关系。
 - 提取、内联或合并逻辑逐调用点核对输入、失败、求值及业务契约，保留指令和注释的作用位置。
+- 涉及 [runtime.Caller／Callers](https://pkg.go.dev/runtime#Caller)、日志 caller skip 或 [testing.T.Helper](https://pkg.go.dev/testing#T.Helper) 时，核对提取和内联对调用者身份、栈帧深度及测试归属的影响。不要求普通格式清理保持所有源码行号；但明确依赖 caller、堆栈或位置的契约不能忽略。
 
 ## 测试契约
 

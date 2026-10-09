@@ -9,13 +9,30 @@ Go 清理入口为 `go-code-simplifier`，Go 审核入口为 `go-code-review`。
 
 ## 使用
 
-将需要的完整技能目录及其 `references/` 复制到目标项目的 `.agents/skills/` 下，确保入口为 `.agents/skills/<技能名>/SKILL.md`。同时将根目录的 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) 复制到 `.agents/skills/THIRD_PARTY_NOTICES.md`，集中随附来源、版权与许可。每个技能独立使用，分发时一并保留这份声明。
+将需要的完整技能目录及其 `references/` 复制到目标项目的 `.agents/skills/` 下，确保入口为 `.agents/skills/<技能名>/SKILL.md`。同时将根目录的 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) 复制到 `.agents/skills/THIRD_PARTY_NOTICES.md`，集中随附来源、版权与许可。每个技能独立使用，分发时一并保留这份声明。单独安装一个技能也需要这份外层声明；不要只打包技能子目录而遗漏它，目录间相对位置应保持不变。
 
 在目标项目的 Codex 会话中输入：
 
 ```text
 $go-code-simplifier 等价行为清理 internal/service，包括测试文件。
 $go-code-review 审核当前未提交的 Go 改动，只读报告问题与验证缺口。
+$go-code-review 审核 internal/service，并修复已确认缺陷；不做范围外风格整理，不提交或推送。
 ```
 
 将 `internal/service` 替换为目标文件或目录。技能遵循目标项目的规则、Go 兼容版本和构建配置；详细清理规则统一维护在对应的 `SKILL.md` 中。
+
+## 模式与验证
+
+只读审核、已授权缺陷修复和行为等价清理是不同模式；同时加载两个技能不扩大权限。本轮明确的只读要求或范围限制优先于历史授权。默认风格是本仓库约定，不代表 Go 官方强制规则。
+
+在本仓库根目录运行离线自检（Python 3.9+、Git、Go 1.22+）：
+
+```sh
+python3 -B -m unittest discover -s tests -v
+# 可选 race 检查需要当前平台支持 race 及可用 C 编译器：
+SKILLS_RUN_RACE=1 python3 -B -m unittest discover -s tests -v
+```
+
+自检检查基本入口字段、仓内文档引用和分发文件，并在临时目录复现 Git 查询边界、运行 Go 契约测试及 vet；另检查六种非等价变换会触发失败，以及预置缺陷修复前失败、最小修复后通过。所有预期失败均由自检明确断言，不代表忽略失败；不会安装依赖、执行模型或修改目标项目。缺失工具会明确报告跳过，不能算作完整验证通过。
+
+[评测说明](evals/README.md) 提供固定输入、提示词和验收标准，用于对比无技能、旧版与新版的真实执行。确定性自检通过不代表模型已经通过评测，也不证明未知项目中的所有转换等价。评测与自检文件不需要安装到目标项目。
