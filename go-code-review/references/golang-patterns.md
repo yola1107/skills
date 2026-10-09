@@ -45,6 +45,8 @@ func CopyResult(buf *bytes.Buffer) []byte {
 
 接口按消费者当前所需能力设计，返回具体类型或接口按暴露能力与兼容判断；零值可用性按构造与资源契约判断，nil map 读取和写入不同。检查接收者、方法集、嵌入、公开兼容和反射／生成引用；仓内调用或初始化路径不证明所有公开入口遵守相同前提。核对职责与依赖方向，合并同形逻辑前比较输入、失败、顺序和责任 owner；承担转换、同步、事务或兼容的包装有价值。结构问题须说明当前维护成本，不能由行数、目录布局、mock 或抽象数量推断。
 
+cgo 前导注释、构建约束和工具指令参与编译或生成，不能当作普通说明删移。核对 `import "C"` 与前导注释的关联；禁用 cgo 的测试不覆盖这些文件，需按涉及的构建条件验证或说明缺口。
+
 ## 测试契约与生命周期
 
 - 断言覆盖输出、错误、状态与副作用；关注变更的成功、失败和边界路径。测试形式、断言库及覆盖率不能代替契约证据。
@@ -64,4 +66,4 @@ func CopyResult(buf *bytes.Buffer) []byte {
 
 ## 语义查证
 
-按需查 [语言规范](https://go.dev/ref/spec)、[io](https://pkg.go.dev/io)、[bytes](https://pkg.go.dev/bytes)、[Context](https://pkg.go.dev/context)、[sync](https://pkg.go.dev/sync)、[errgroup](https://pkg.go.dev/golang.org/x/sync/errgroup)、[testing](https://pkg.go.dev/testing)、[Go modules](https://go.dev/ref/mod) 与 [路径边界](https://go.dev/blog/osroot)。确认目标版本的语法及 API 支持；验证流程与授权见入口 SKILL。
+按需查 [语言规范](https://go.dev/ref/spec)、[io](https://pkg.go.dev/io)、[bytes](https://pkg.go.dev/bytes)、[Context](https://pkg.go.dev/context)、[sync](https://pkg.go.dev/sync)、[errgroup](https://pkg.go.dev/golang.org/x/sync/errgroup)、[testing](https://pkg.go.dev/testing)、[Go modules](https://go.dev/ref/mod)、[cgo](https://pkg.go.dev/cmd/cgo) 与 [路径边界](https://go.dev/blog/osroot)。确认目标版本的语法及 API 支持；验证流程与授权见入口 SKILL。
