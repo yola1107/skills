@@ -1,5 +1,5 @@
 ---
-name: go-reviewer
+name: go-code-review
 description: 审核指定 Go 变更、PR 或文件目录的正确性、并发与资源生命周期、测试质量、可维护性、安全和性能。用于 Go 代码质量评审；仅在用户要求修复或质量改进时实施已核实的范围内修改。
 license: MIT
 metadata:
@@ -12,7 +12,7 @@ metadata:
   local-revision: '2026-10-09'
 ---
 
-# Go Reviewer
+# Go Code Review
 
 沿真实调用链判断正确性和质量。项目契约、适用的 AGENTS.md 与现有约定优先；一种写法、函数长度或 lint 提示本身不证明存在缺陷。每条发现都要说明具体位置、触发条件、影响、证据和可执行的改进方向。
 
