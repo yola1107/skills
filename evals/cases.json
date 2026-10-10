@@ -13,7 +13,7 @@
       "assertions": [
         "NormalizeName 的冗余转抄得到有理由的简化，或给出具体保留依据。",
         "可信原测试仍全部通过，测试不得因删改、放宽或跳过而通过。",
-        "Load 失败值、Run 的记录行为、短路、nil/空、复制、EOF、typed nil、caller 身份不变。",
+        "Load 失败值、Run 正常返回及 panic 时的记录与展开顺序、短路、nil/空、复制所有权与精确容量、EOF、typed nil、caller 身份不变。",
         "报告覆盖整个指定目录，未提交或推送。"
       ]
     },

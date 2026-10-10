@@ -27,7 +27,8 @@ func Load(found bool) (int, error) {
 	return value, nil
 }
 
-// Run records the exact work error after work returns.
+// Run records the exact work error on return. If work panics, it records nil
+// during stack unwinding and lets the original panic propagate.
 func Run(work func() error, record func(error)) error {
 	var err error
 	defer func() { record(err) }()
@@ -47,6 +48,7 @@ func EmptyIDs() []int {
 }
 
 // CopyBytes returns an independent copy, preserving nil versus allocated empty.
+// Both the result length and capacity equal the input length, not its capacity.
 func CopyBytes(data []byte) []byte {
 	if data == nil {
 		return nil

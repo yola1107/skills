@@ -35,6 +35,41 @@ func TestRunRecordsWorkError(t *testing.T) {
 	}
 }
 
+func TestRunRecordsDuringPanic(t *testing.T) {
+	wantPanic := &struct {
+		message string
+	}{message: "work panic"}
+	var recovered any
+	recorded := errors.New("record not called")
+	calls := 0
+	returned := false
+	var order []string
+	func() {
+		defer func() {
+			recovered = recover()
+			order = append(order, "recover")
+		}()
+		Run(func() error {
+			defer func() { order = append(order, "work defer") }()
+			panic(wantPanic)
+		}, func(err error) {
+			recorded = err
+			calls++
+			order = append(order, "record")
+		})
+		returned = true
+	}()
+	if recovered != wantPanic || returned {
+		t.Fatalf("panic=%v returned=%v, want unchanged panic and no return", recovered, returned)
+	}
+	if recorded != nil || calls != 1 {
+		t.Fatalf("recorded=%v calls=%d, want nil exactly once", recorded, calls)
+	}
+	if want := []string{"work defer", "record", "recover"}; !reflect.DeepEqual(order, want) {
+		t.Fatalf("unwind order=%v, want %v", order, want)
+	}
+}
+
 func TestFirstIsOnePreservesShortCircuit(t *testing.T) {
 	cases := []struct {
 		values []int
@@ -79,6 +114,31 @@ func TestCopyBytesPreservesOwnershipAndNil(t *testing.T) {
 	copied[1] = 8
 	if original[1] != 2 {
 		t.Fatal("copy aliases source")
+	}
+}
+
+func TestCopyBytesPreservesExactCapacity(t *testing.T) {
+	cases := []struct {
+		name string
+		data []byte
+	}{
+		{name: "nil", data: nil},
+		{name: "allocated empty", data: []byte{}},
+		{name: "empty with spare capacity", data: make([]byte, 0, 16)},
+		{name: "one byte with spare capacity", data: make([]byte, 1, 16)},
+		{name: "three bytes with spare capacity", data: make([]byte, 3, 16)},
+		{name: "exact input capacity", data: []byte{1, 2, 3}},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := CopyBytes(tc.data)
+			if len(got) != len(tc.data) || cap(got) != len(tc.data) {
+				t.Fatalf("length=%d capacity=%d, want both %d", len(got), cap(got), len(tc.data))
+			}
+			if (got == nil) != (tc.data == nil) {
+				t.Fatal("nil versus allocated empty changed")
+			}
+		})
 	}
 }
 

@@ -9,7 +9,7 @@ metadata:
   upstream-path: agents/go-reviewer.md
   additional-upstream-repository: https://github.com/samber/cc-skills-golang
   additional-upstream-ref: 8e899e20ff0cd4dc524af3993e4c62d8ee8c5717
-  local-revision: '2026-10-09'
+  local-revision: '2026-10-10'
 ---
 
 # Go Code Review
@@ -58,5 +58,7 @@ metadata:
 按实际影响分级：Critical 为已证实的严重安全、数据损坏或核心功能失败；High 为重要的正确性、生命周期、契约或有具体影响的结构问题；Medium 为影响有界的质量问题。风格建议、待确认契约和验证缺口分别说明。
 
 严重程度与证据强度分开；代码触发路径不自动证明业务预期错误。玩法、协议或产品语义尚待确认时单列待确认问题，不与已证实缺陷并列分级。
+
+测试数量与失败集合从完整结构化日志（优先 `go test -json`）程序化汇总，保留命令、选择范围和原始退出码。顶层测试、子测试、包级结果及重复运行分开统计；同条件基线比较具体失败身份和原因，不只比较个数。日志缺失、截断、没有测试执行或既有失败未解决时，不报“完整通过”；定向 race 不代表全套验证。
 
 报告实际覆盖、执行的检查和未覆盖部分；无发现时明确说明。已授权实施时说明改动、行为影响及重要保留项。以证据和范围验收完成任务，不以问题数量、改动数量或工具通过代替判断。

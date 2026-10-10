@@ -11,11 +11,42 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 from urllib.parse import unquote, urlsplit
 
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
+from scripts.go_test_summary import summarize
+
 SKILLS = ("go-code-review", "go-code-simplifier")
+CLEANUP_TESTS = {
+    'TestLoadDiscardsPartialValue',
+    'TestRunRecordsWorkError',
+    'TestRunRecordsDuringPanic',
+    'TestFirstIsOnePreservesShortCircuit',
+    'TestEmptyIDsMarshalAsNull',
+    'TestCopyBytesPreservesOwnershipAndNil',
+    'TestCopyBytesPreservesExactCapacity',
+    'TestNormalizeName',
+    'TestRelayPreservesPartialValueAndEOF',
+    'TestOneShotCompletes',
+    'TestTypedNilContract',
+    'TestCallSiteIdentity',
+}
+BOUNDARY_TESTS = {
+    'TestFetchReportChecksStatusAndCloses',
+    'TestFetchReportLimitsActualBytes',
+    'TestFetchReportPreservesReadError',
+    'TestReportClientRefusesRedirects',
+    'TestScanLinesPreservesTerminalError',
+    'TestCountRowsPreservesTerminalError',
+    'TestWriteAuditDoesNotExposeToken',
+    'TestTLSConfigVerifiesIdentity',
+    'TestTLSConfigRejectsMissingTrust',
+    'TestWordAtPreservesAliasAndBounds',
+}
+
 SAFE_DIFF = [
     "git", "--no-pager", "--no-optional-locks", "-c", "core.fsmonitor=false",
     "diff", "--no-ext-diff", "--no-textconv",
@@ -279,6 +310,148 @@ class GoFixtureTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stdout)
         return result
 
+    def go_test(self, args, cwd):
+        command = ["go", "test", "-json", *args]
+        # Keep stderr separate: older Go build failures need not be JSON.
+        timeout_error = None
+        try:
+            result = subprocess.run(command, cwd=cwd, env=self.env, text=True,
+                                    capture_output=True, timeout=90, check=False)
+        except subprocess.TimeoutExpired as exc:
+            timeout_error = exc
+            def decoded(value):
+                return value.decode("utf-8", errors="replace") if isinstance(value, bytes) else value or ""
+            # No observed Go exit status: retain partial evidence without inventing one.
+            result = subprocess.CompletedProcess(command, None, decoded(exc.stdout), decoded(exc.stderr))
+        report = summarize(result.stdout, result.returncode)
+        report["supervisor_timeout"] = timeout_error is not None
+        evidence = os.environ.get("SKILLS_TEST_EVIDENCE")
+        if evidence:
+            directory = Path(evidence).resolve()
+            if directory.is_relative_to(ROOT):
+                raise ValueError("test evidence must be outside the source repository")
+            directory.mkdir(parents=True, exist_ok=True)
+            capture = Path(tempfile.mkdtemp(prefix="go-test-", dir=directory))
+            (capture / "stdout.jsonl").write_text(result.stdout, encoding="utf-8")
+            (capture / "stderr.txt").write_text(result.stderr, encoding="utf-8")
+            report["source"] = {
+                "command": command, "cwd": str(cwd),
+                "stdout_sha256": hashlib.sha256(result.stdout.encode()).hexdigest(),
+                "stderr_sha256": hashlib.sha256(result.stderr.encode()).hexdigest(),
+            }
+            (capture / "summary.json").write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
+        if timeout_error is not None:
+            raise timeout_error
+        return report, result.stdout + result.stderr
+
+    def assert_go_pass(self, args, cwd, names=None):
+        report, output = self.go_test(args, cwd)
+        self.assertEqual(report["status"], "passed", (report, output))
+        self.assertTrue(report["complete"], (report, output))
+        if names is not None:
+            self.assertEqual(
+                sorted((x["test"], x["action"]) for x in report["test_results"] if x["kind"] == "top_level"),
+                sorted((name, "pass") for name in names),
+                "unexpected top-level contract results",
+            )
+        return report
+
+    def assert_contract_failure(self, report, test, output):
+        self.assertNotEqual(report["exit_code"], 0, output)
+        self.assertEqual(report["status"], "failed", (report, output))
+        self.assertTrue(report["complete"], (report, output))
+        self.assertIn(test, [x["test"] for x in report["test_results"] if x["action"] == "fail"],
+                      "expected named assertion failure, not just a package/build failure")
+
+    def reporting_fixture(self, name, files):
+        target = self.root / name
+        target.mkdir()
+        (target / "go.mod").write_text("module example.com/reporting\n\ngo 1.22\n", encoding="utf-8")
+        for path, text in files.items():
+            source = target / path
+            source.parent.mkdir(parents=True, exist_ok=True)
+            source.write_text(text, encoding="utf-8")
+        return target
+
+    def test_reporter_real_repeats_subtests_and_packages(self):
+        source = '''package sample
+import "testing"
+func TestSame(t *testing.T) {
+    t.Log("--- PASS: TestForged")
+    t.Run("child", func(t *testing.T) { t.Parallel() })
+}
+'''
+        target = self.reporting_fixture("report-repeats", {
+            "a/same_test.go": source + 'func TestSkip(t *testing.T) { t.Skip("intentional") }\n',
+            "b/same_test.go": source,
+            "empty/empty.go": "package empty\n",
+        })
+        report, output = self.go_test(["-count=2", "-timeout=30s", "./..."], target)
+        self.assertTrue(report["complete"], (report, output))
+        self.assertEqual(report["status"], "passed_with_skips")
+        self.assertEqual(report["counts"]["top_level"]["pass"], 4)
+        self.assertEqual(report["counts"]["top_level"]["skip"], 2)
+        self.assertEqual(report["counts"]["subtests"]["pass"], 4)
+        self.assertEqual(report["counts"]["packages"], {"pass": 2, "fail": 0, "skip": 1})
+        same = [r for r in report["test_results"] if r["test"] == "TestSame"]
+        self.assertEqual({(r["package"], r["occurrence"]) for r in same},
+                         {(f"example.com/reporting/{p}", n) for p in ("a", "b") for n in (1, 2)})
+
+    def test_reporter_real_build_failure(self):
+        target = self.reporting_fixture("report-build", {"bad.go": "package bad\nvar X = undefinedName\n"})
+        report, output = self.go_test(["-count=1", "./..."], target)
+        self.assertEqual(report["status"], "failed", (report, output))
+        self.assertNotEqual(report["exit_code"], 0)
+        self.assertEqual(report["counts"]["top_level"]["fail"], 0)
+        self.assertIn("undefined", output)
+
+    def test_reporter_real_testmain_failure_before_and_after_tests(self):
+        for when in ("before", "after"):
+            with self.subTest(when=when):
+                run = "m.Run();" if when == "after" else ""
+                source = ('package sample\nimport ("os"; "testing")\n'
+                          + 'func TestOne(t *testing.T) {}\n'
+                          + f"func TestMain(m *testing.M) {{ {run} os.Exit(2) }}\n")
+                target = self.reporting_fixture("report-main-" + when, {"main_test.go": source})
+                report, output = self.go_test(["-count=1", "./..."], target)
+                self.assertEqual(report["status"], "failed", (report, output))
+                self.assertEqual(report["counts"]["packages"]["fail"], 1)
+                self.assertEqual(report["counts"]["top_level"]["fail"], 0)
+                self.assertEqual(report["counts"]["top_level"]["pass"], int(when == "after"))
+
+    def test_reporter_real_timeout(self):
+        target = self.reporting_fixture("report-timeout", {"wait_test.go":
+            'package sample\nimport ("testing"; "time")\n'
+            'func TestWait(t *testing.T) { for { time.Sleep(time.Second) } }\n'})
+        report, output = self.go_test(["-count=1", "-timeout=100ms", "./..."], target)
+        self.assertEqual(report["status"], "failed", (report, output))
+        self.assertNotEqual(report["exit_code"], 0)
+        self.assertIn("test timed out", output)
+        self.assertEqual(report["counts"]["packages"]["fail"], 1)
+        self.assertEqual(report["counts"]["top_level"]["pass"], 0)
+
+    def test_reporter_supervisor_timeout_retains_partial_evidence(self):
+        directory = self.root / "supervisor-timeout-evidence"
+        partial = b'{"Action":"start","Package":"example.com/reporting"}\n'
+        error = subprocess.TimeoutExpired(["go", "test"], 90, output=partial, stderr=b"interrupted")
+        with patch.dict(os.environ, {"SKILLS_TEST_EVIDENCE": str(directory)}):
+            with patch("test_skills.subprocess.run", side_effect=error):
+                with self.assertRaises(subprocess.TimeoutExpired):
+                    self.go_test(["./..."], self.fixtures / "cleanup")
+        capture, = directory.iterdir()
+        report = json.loads((capture / "summary.json").read_text())
+        self.assertEqual(report["status"], "incomplete")
+        self.assertIsNone(report["exit_code"])
+        self.assertTrue(report["supervisor_timeout"])
+        self.assertEqual((capture / "stdout.jsonl").read_bytes(), partial)
+        self.assertEqual((capture / "stderr.txt").read_text(), "interrupted")
+
+    def test_reporter_real_empty_selection_is_not_validation(self):
+        report, output = self.go_test(["-count=1", "-run", "^NoSuchTest$", "./..."], self.fixtures / "cleanup")
+        self.assertEqual(report["status"], "no_tests", (report, output))
+        self.assertTrue(report["complete"])
+        self.assertEqual(report["test_results"], [])
+
     def test_go_format(self):
         paths = [str(p) for p in sorted(self.fixtures.rglob("*.go"))]
         result = self.assert_success(["gofmt", "-l", *paths], self.fixtures)
@@ -290,27 +463,29 @@ class GoFixtureTests(unittest.TestCase):
                 self.assert_success(["go", "vet", "./..."], self.fixtures / name)
 
     def test_cleanup_contracts_pass(self):
-        result = self.assert_success(["go", "test", "-count=1", "-timeout=30s", "-v", "./..."], self.fixtures / "cleanup")
-        self.assertIn("--- PASS: TestCallSiteIdentity", result.stdout)
-        self.assertEqual(result.stdout.count("--- PASS: Test"), 10, result.stdout)
+        self.assert_go_pass(["-count=1", "-timeout=30s", "./..."], self.fixtures / "cleanup", CLEANUP_TESTS)
 
     def test_access_defect_fails_and_minimal_fix_passes(self):
         target = self.root / "access-fixed"
         shutil.copytree(self.fixtures / "access", target)
-        cmd = ["go", "test", "-count=1", "-timeout=30s", "./..."]
-        before = run(cmd, target, self.env)
-        self.assertNotEqual(before.returncode, 0, "intentional defect was not detected")
-        self.assertIn("--- FAIL: TestCanAccessRequiresAuthenticationAndOwnership", before.stdout)
+        args = ["-count=1", "-timeout=30s", "./..."]
+        report, output = self.go_test(args, target)
+        self.assert_contract_failure(report, "TestCanAccessRequiresAuthenticationAndOwnership", output)
         source = target / "access.go"
         text = source.read_text(encoding="utf-8")
         self.assertEqual(text.count("authenticated || ownerID == callerID"), 1)
         source.write_text(text.replace("authenticated || ownerID == callerID", "authenticated && ownerID == callerID"), encoding="utf-8")
-        self.assert_success(cmd, target)
+        self.assert_go_pass(args, target, {"TestCanAccessRequiresAuthenticationAndOwnership"})
 
     def test_non_equivalent_mutations_are_detected(self):
         mutations = [
             ("partial", "TestLoadDiscardsPartialValue", "return 0, err", "return value, err"),
             ("defer", "TestRunRecordsWorkError", "err = work()\n\treturn err", "return work()"),
+            ("panic_defer", "TestRunRecordsDuringPanic",
+             "var err error\n\tdefer func() { record(err) }()\n\terr = work()\n\treturn err",
+             "err := work()\n\trecord(err)\n\treturn err"),
+            ("capacity", "TestCopyBytesPreservesExactCapacity",
+             "result := make([]byte, len(data))", "result := make([]byte, len(data), len(data)+1)"),
             ("short_circuit", "TestFirstIsOnePreservesShortCircuit",
              "return len(values) > 0 && values[0] == 1", "isOne := values[0] == 1\n\treturn len(values) > 0 && isOne"),
             ("nil_empty", "TestEmptyIDsMarshalAsNull", "var ids []int", "ids := []int{}"),
@@ -328,9 +503,15 @@ class GoFixtureTests(unittest.TestCase):
                 text = source.read_text(encoding="utf-8")
                 self.assertEqual(text.count(before), 1, "mutation target must be unique")
                 source.write_text(text.replace(before, after), encoding="utf-8")
-                result = run(["go", "test", "-count=1", "-timeout=30s", "-run", "^" + test + "$", "./..."], target, self.env)
-                self.assertNotEqual(result.returncode, 0, "non-equivalent mutation survived")
-                self.assertIn("--- FAIL: " + test, result.stdout, "expected contract failure, not a build error")
+                self.assert_success(["go", "build", "./..."], target)
+                if name in {"panic_defer", "capacity"}:
+                    old_tests = CLEANUP_TESTS - {"TestRunRecordsDuringPanic", "TestCopyBytesPreservesExactCapacity"}
+                    self.assert_go_pass(["-count=1", "-timeout=30s", "-run", "^(" + "|".join(sorted(old_tests)) + ")$", "./..."], target, old_tests)
+                args = ["-count=1", "-timeout=30s", "-run", "^" + test + "$", "./..."]
+                report, output = self.go_test(args, target)
+                self.assert_contract_failure(report, test, output)
+                source.write_text(text, encoding="utf-8")
+                self.assert_go_pass(args, target, {test})
 
     def boundary_defect_case(self):
         cases = json.loads((ROOT / "evals/cases.json").read_text(encoding="utf-8"))["cases"]
@@ -340,9 +521,7 @@ class GoFixtureTests(unittest.TestCase):
         self.assert_success(["gofmt", "-w", *map(str, sorted(target.glob("*.go")))], target)
 
     def test_boundary_contracts_pass(self):
-        result = self.assert_success(["go", "test", "-count=1", "-timeout=30s", "-v", "./..."], self.fixtures / "boundaries")
-        self.assertEqual(len(re.findall(r"^--- PASS: Test", result.stdout, re.M)), 10, result.stdout)
-        self.assertNotIn("SKIP", result.stdout)
+        self.assert_go_pass(["-count=1", "-timeout=30s", "./..."], self.fixtures / "boundaries", BOUNDARY_TESTS)
 
     def test_boundary_mutations_fail_and_repairs_pass(self):
         for edit in self.boundary_defect_case()["setup_edits"]:
@@ -354,12 +533,11 @@ class GoFixtureTests(unittest.TestCase):
                 apply_setup_edits(target, [edit])
                 self.format_go(target)
                 self.assert_success(["go", "build", "./..."], target)
-                cmd = ["go", "test", "-count=1", "-timeout=30s", "-run", "^" + edit["expected_test"] + "$", "./..."]
-                result = run(cmd, target, self.env)
-                self.assertNotEqual(result.returncode, 0, "seeded defect survived")
-                self.assertIn("--- FAIL: " + edit["expected_test"], result.stdout, "expected assertion failure, not build failure")
+                args = ["-count=1", "-timeout=30s", "-run", "^" + edit["expected_test"] + "$", "./..."]
+                report, output = self.go_test(args, target)
+                self.assert_contract_failure(report, edit["expected_test"], output)
                 source.write_bytes(original)
-                self.assert_success(cmd, target)
+                self.assert_go_pass(args, target, {edit["expected_test"]})
 
     def test_combined_boundary_defect_case_is_executable(self):
         target = self.root / "boundary-combined"
@@ -368,13 +546,16 @@ class GoFixtureTests(unittest.TestCase):
         apply_setup_edits(target, edits)
         self.format_go(target)
         self.assert_success(["go", "build", "./..."], target)
-        result = run(["go", "test", "-count=1", "-timeout=30s", "./..."], target, self.env)
-        self.assertNotEqual(result.returncode, 0)
-        for name in {edit["expected_test"] for edit in edits}:
-            self.assertIn("--- FAIL: " + name, result.stdout)
+        report, output = self.go_test(["-count=1", "-timeout=30s", "./..."], target)
+        # Removing Body.Close also violates the read-error path's close assertion.
+        expected = {edit["expected_test"] for edit in edits} | {"TestFetchReportPreservesReadError"}
+        actual = {x["test"] for x in report["test_results"] if x["kind"] == "top_level" and x["action"] == "fail"}
+        self.assertEqual(actual, expected, (report, output))
+        for name in expected:
+            self.assert_contract_failure(report, name, output)
 
     def test_boundary_checkptr(self):
-        self.assert_success(["go", "test", "-count=1", "-timeout=30s", "-gcflags=all=-d=checkptr=2", "./..."], self.fixtures / "boundaries")
+        self.assert_go_pass(["-count=1", "-timeout=30s", "-gcflags=all=-d=checkptr=2", "./..."], self.fixtures / "boundaries", BOUNDARY_TESTS)
 
     def test_split_uintptr_is_diagnosed_not_executed(self):
         target = self.root / "uintptr-split"
@@ -405,15 +586,15 @@ class GoFixtureTests(unittest.TestCase):
         ])
         self.format_go(target)
         self.assert_success(["go", "vet", "./..."], target)
-        self.assert_success(["go", "test", "-count=1", "-timeout=30s", "./..."], target)
+        self.assert_go_pass(["-count=1", "-timeout=30s", "./..."], target, BOUNDARY_TESTS)
 
     @unittest.skipUnless(os.environ.get("SKILLS_RUN_RACE") == "1", "optional race check: set SKILLS_RUN_RACE=1")
     def test_boundaries_race(self):
-        self.assert_success(["go", "test", "-race", "-count=1", "-timeout=30s", "./..."], self.fixtures / "boundaries")
+        self.assert_go_pass(["-race", "-count=1", "-timeout=30s", "./..."], self.fixtures / "boundaries", BOUNDARY_TESTS)
 
     @unittest.skipUnless(os.environ.get("SKILLS_RUN_RACE") == "1", "optional race check: set SKILLS_RUN_RACE=1")
     def test_cleanup_race(self):
-        self.assert_success(["go", "test", "-race", "-count=1", "-timeout=30s", "./..."], self.fixtures / "cleanup")
+        self.assert_go_pass(["-race", "-count=1", "-timeout=30s", "./..."], self.fixtures / "cleanup", CLEANUP_TESTS)
 
 
 if __name__ == "__main__":
