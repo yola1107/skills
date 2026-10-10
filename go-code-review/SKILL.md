@@ -38,7 +38,7 @@ metadata:
 项目明确风格约定优先，未约定处参考 [Effective Go](https://go.dev/doc/effective_go) 与 [Go Code Review Comments](https://go.dev/wiki/CodeReviewComments)。以下是本技能的默认风格，不是 Go 官方强制规则：
 
 - 非空结构体多行逐字段声明，同类型字段分别写出类型；匿名结构体、表驱动测试和测试辅助类型同样适用。
-- 常规 imports 分标准库、第三方依赖、项目内包三组，省略空组；保留 `import "C"` 与 cgo 前导注释的关联。
+- 常规 imports 默认按标准库、项目内包、第三方依赖三组排列，省略空组；保留 `import "C"` 与 cgo 前导注释的关联。
 - 返回表达式默认显式写出；命名结果仅在 defer／recover 依赖或有助于区分返回契约时保留，保留时仍列出返回表达式。
 
 项目必需风格标明整改项；默认风格与可选简化单列建议，不能升级为正确性缺陷。结构问题应说明具体维护成本，方案仍须核对行为等价与 API 兼容。
