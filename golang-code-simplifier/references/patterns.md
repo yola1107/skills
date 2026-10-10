@@ -55,6 +55,76 @@ for _, p := range players {
 }
 ```
 
+**嵌套超限：先跳出，再提取职责独立的分支** [B] 前提：提取后锁的配对、调用顺序和日志不变（见 traps.md「控制流」「并发」）。
+
+```go
+// 改前：for → for → if → if/else → for → if，下注和换区两个分支各二三十行
+func (r *Room) RunAI(task *timewheel.Task, args ...interface{}) {
+	...
+	for _, ai := range r.ais {
+		for _, action := range ai.Action {
+			if action.Time == r.aiindex {
+				if action.Action == 1 {
+					// 三十行：查找或创建下注信息、加锁写入、统计、追加 playerbet 消息
+				} else {
+					// 二十多行：读锁内改区域并统计、if ok 追加消息 else 记日志
+				}
+			}
+		}
+	}
+	...
+}
+
+// 改后：循环体只剩分派，每个分支一个方法
+func (r *Room) RunAI(task *timewheel.Task, args ...interface{}) {
+	...
+	for _, ai := range r.ais {
+		for _, action := range ai.Action {
+			if action.Time != r.aiindex {
+				continue
+			}
+			if action.Action == 1 {
+				msgs = append(msgs, r.aiBet(ai, action))
+				continue
+			}
+			if msg, ok := r.aiSwitchPot(ai, action); ok {
+				msgs = append(msgs, msg)
+			}
+		}
+	}
+	...
+}
+
+// aiSwitchPot 把 AI 的下注移到 action 指定的区域，AI 没有下注记录时返回 false。
+func (r *Room) aiSwitchPot(ai *pb.BR001AI, action *pb.BR001AIAction) (*pb.UserMessage, bool) {
+	r.betlock.RLock()
+	bet, ok := r.playersbet[ai.Uid]
+	var oldPID int32
+	if ok {
+		oldPID = bet.Pid
+		bet.Pid = action.Pid
+	}
+	r.betlock.RUnlock()
+	if !ok {
+		r.module.Errorln("AI NO KEYYP!")
+		return nil, false
+	}
+	return modules.ToUserMessage("br001/playerswitchpot", &pb.BR001PlayerSwitchPotPush{
+		Uid:        bet.Uid,
+		Playername: bet.Playername,
+		Oldpid:     oldPID,
+		Newid:      action.Pid,
+		Allbet:     bet.Bet,
+	}), true
+}
+```
+
+逐项核对：
+- 提取出的方法里，`RLock` 与 `RUnlock` 之间没有新增的返回点，`return` 都在解锁之后。
+- 消息追加的顺序、`Errorln` 的触发条件和文本与原来相同。
+- 原代码在读锁内累加的 `oldPotTotalBet`、`newPotTotalBet` 只被自己读取，`utils.Add` 无副作用，属于死计算，可以一并删除（B 级）；删除前确认函数内没有其他读取。
+- 在 `RLock` 下修改 `bet.Pid` 是原有的数据竞争，写进「发现」，不在简化中修复。
+
 **同一变量的多分支改 switch** [B] 前提：分支内没有 `break`，比较对象不是函数调用（见 traps.md「控制流」）。
 
 ```go
