@@ -17,7 +17,7 @@ from urllib.parse import unquote, urlsplit
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
-from scripts.go_test_summary import summarize
+from scripts.go_test_summary import summarize_bytes
 
 SKILLS = ("go-code-review", "go-code-simplifier")
 CLEANUP_TESTS = {
@@ -312,37 +312,50 @@ class GoFixtureTests(unittest.TestCase):
 
     def go_test(self, args, cwd):
         command = ["go", "test", "-json", *args]
-        # Keep stderr separate: older Go build failures need not be JSON.
-        timeout_error = None
-        try:
-            result = subprocess.run(command, cwd=cwd, env=self.env, text=True,
-                                    capture_output=True, timeout=90, check=False)
-        except subprocess.TimeoutExpired as exc:
-            timeout_error = exc
-            def decoded(value):
-                return value.decode("utf-8", errors="replace") if isinstance(value, bytes) else value or ""
-            # No observed Go exit status: retain partial evidence without inventing one.
-            result = subprocess.CompletedProcess(command, None, decoded(exc.stdout), decoded(exc.stderr))
-        report = summarize(result.stdout, result.returncode)
-        report["supervisor_timeout"] = timeout_error is not None
         evidence = os.environ.get("SKILLS_TEST_EVIDENCE")
+        capture = None
         if evidence:
             directory = Path(evidence).resolve()
             if directory.is_relative_to(ROOT):
                 raise ValueError("test evidence must be outside the source repository")
             directory.mkdir(parents=True, exist_ok=True)
             capture = Path(tempfile.mkdtemp(prefix="go-test-", dir=directory))
-            (capture / "stdout.jsonl").write_text(result.stdout, encoding="utf-8")
-            (capture / "stderr.txt").write_text(result.stderr, encoding="utf-8")
-            report["source"] = {
+        # Binary capture avoids newline conversion and decoding before preservation.
+        timeout_error = None
+        try:
+            result = subprocess.run(command, cwd=cwd, env=self.env, text=False,
+                                    capture_output=True, timeout=90, check=False)
+        except subprocess.TimeoutExpired as exc:
+            timeout_error = exc
+            # No observed Go exit status; preserve the partial bytes exactly.
+            result = subprocess.CompletedProcess(command, None, exc.stdout or b"", exc.stderr or b"")
+        raw_stdout, raw_stderr = result.stdout, result.stderr
+        if capture:
+            (capture / "stdout.jsonl").write_bytes(raw_stdout)
+            (capture / "stderr.txt").write_bytes(raw_stderr)
+            source = {
                 "command": command, "cwd": str(cwd),
-                "stdout_sha256": hashlib.sha256(result.stdout.encode()).hexdigest(),
-                "stderr_sha256": hashlib.sha256(result.stderr.encode()).hexdigest(),
+                "stdout_sha256": hashlib.sha256(raw_stdout).hexdigest(),
+                "stderr_sha256": hashlib.sha256(raw_stderr).hexdigest(),
             }
+            metadata = {"source": source, "exit_code": result.returncode,
+                        "supervisor_timeout": timeout_error is not None}
+            (capture / "capture.json").write_text(json.dumps(metadata, indent=2) + "\n", encoding="utf-8")
+        report = summarize_bytes(raw_stdout, result.returncode)
+        report["supervisor_timeout"] = timeout_error is not None
+        stdout = raw_stdout.decode("utf-8", errors="replace")
+        try:
+            stderr = raw_stderr.decode("utf-8")
+            report["stderr_decode_error"] = False
+        except UnicodeDecodeError:
+            stderr = raw_stderr.decode("utf-8", errors="replace")
+            report["stderr_decode_error"] = True
+        if capture:
+            report["source"] = source
             (capture / "summary.json").write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
         if timeout_error is not None:
             raise timeout_error
-        return report, result.stdout + result.stderr
+        return report, stdout + stderr
 
     def assert_go_pass(self, args, cwd, names=None):
         report, output = self.go_test(args, cwd)

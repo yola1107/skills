@@ -36,7 +36,7 @@
 
 ## 测试结果汇总
 
-用 [go_test_summary.py](../scripts/go_test_summary.py) 从一次 `go test -json` 的完整 stdout 生成统计。工具只读日志，不运行命令、不加载依赖，也不替代项目验证入口。逐条保留 `(package, test, occurrence)` 与包执行编号；`-count=N` 的重复终结事件按执行次数计数，不去重成“只运行一次”。顶层 `Test`、子测试、Example、Fuzz、Benchmark 和包结果分别列出，不能相加后称为顶层通过数。
+用 [go_test_summary.py](../scripts/go_test_summary.py) 从一次 `go test -json` 的完整 stdout 生成统计。工具只读日志，不运行命令、不加载依赖，也不替代项目验证入口。逐条保留 `(package, test, occurrence)` 与包执行编号；`-count=N` 的重复终结事件按执行次数计数，不去重成“只运行一次”。顶层 `Test`、子测试、Example、Fuzz、Benchmark 和包结果分别列出，不能相加后称为顶层通过数。普通测试的终结事件按出现次数统计；benchmark 的事件并不与测量次数一一对应，不能据此或命令参数推算成功次数。
 
 在已授权的隔离验证目录运行测试，先将 `SKILLS_REPO` 设为本仓库的实际绝对路径，`EVIDENCE_DIR` 设为新建的仓库外证据目录。下面以完整套件为例；定向 `-run`、race、构建变体和前后基线各用独立日志，保持真实选择条件，不替换项目已有入口：
 
@@ -57,3 +57,15 @@ python3 "$SKILLS_REPO/scripts/go_test_summary.py" \
 汇总工具退出码：`0` 为观察到测试通过且日志完整、无测试／包跳过；`1` 为进程、包、测试或构建存在失败；`2` 为记录不完整、未知退出状态、无测试通过、存在测试／包跳过或输入错误，不应报全绿。JSON 的 `status` 和 `complete` 分别表达结果与已观察事件完整性；即使已确认失败，也可能同时存在未完成测试。包无测试和测试选择为空不算执行通过。Benchmark 不提供普通测试通过证据；缓存日志只证明对应历史执行，需要新执行证据时用 `-count=1`。
 
 `complete=true` 不证明覆盖全部请求范围：日志若整段漏掉某个包／测试，单看剩余事件可能无法识别。已知预期包时可重复传 `--expect-package <import-path>`，再独立核对预期测试身份及命令选择范围。仓内夹具自检核对确定的顶层测试名称和次数，而不仅是总数。日志缺失、格式不支持或截断时保留缺口，不猜测数量；统计器也不判断失败是否既有、是否构成业务回归，或 Skill 的模型执行质量。
+
+### Benchmark、编码与未知状态
+
+Benchmark 不沿用普通测试必须逐次配对 run／终结的假设：成功 benchmark 可能仅输出 run／output，重复测量也未必重复产生 run。`benchmark_events` 保留实际观察到的非 output benchmark 事件及其日志行号；`counts.benchmarks` 只统计明确的 pass／fail／skip／bench 事件，不补造单项成功，不把 bench 日志事件当作测量次数。原始测量行仍保存在日志中。包结果与进程退出状态用于判断这次命令的结果；普通测试缺少终结、包未结束、退出状态未知或日志损坏，仍须保留不完整标记。只有 benchmark 的成功命令可以 `complete=true`，但普通测试状态为 `no_tests`、CLI 返回 2，不冒充单元测试验证。
+
+JSONL 仅按实际 LF 分隔记录；JSON 字符串中的 Unicode 行分隔符不能拆成新记录。CLI 和自检采集器通过 `summarize_bytes` 从原始字节生成解码视图。非法 UTF-8 stdout 会标注 `stdout_decode_error` 并令 `complete=false`；已经确认的进程／测试失败仍为 failed。stderr 的解码限制单列，不擅自改写进程退出状态。
+
+自检设置 `SKILLS_TEST_EVIDENCE` 后，正常与超时路径均先按字节保存 stdout／stderr，再写入带原始字节 SHA-256、命令、目录和已观察退出状态的 `capture.json`，最后生成 `summary.json`。文本解码和替换字符只用于派生视图，不能覆盖原始文件；即使摘要解析异常，也保留原始采集和执行元数据。这里的原始字节指 Go 命令输出，不承诺恢复 test2json 转换前的非法编码。以 `.txt` 命名的 stderr 文件也可能含非法 UTF-8，应按字节读取证据。
+
+没有观察到 Go 退出码时，CLI 使用 `--exit-code unknown`，摘要中记录 null，而不是填 0 或用 -1 代替。负整数仍表示真实观察到的非零进程状态；已确认失败返回 1，其余未知状态返回不完整摘要及退出码 2。不要为得到摘要而重跑一次不同命令并借用其退出码。
+
+回归验证包含真实 Go 进程的无日志／有日志／子 benchmark、重复与 CPU 变体、benchmark-only、失败和跳过，以及 Unicode 日志；另用受控子进程和超时注入逐字节验证 CRLF、非法编码及半个 UTF-8 字符的保存与哈希。它们验证统计与采集行为，不是模型清理效果或全部工具链版本的证明。
