@@ -51,6 +51,25 @@ func execute() error {
 - 提取、内联或合并逻辑逐调用点核对输入、失败、求值及业务契约，保留指令和注释的作用位置。
 - 涉及 [runtime.Caller／Callers](https://pkg.go.dev/runtime#Caller)、日志 caller skip 或 [testing.T.Helper](https://pkg.go.dev/testing#T.Helper) 时，核对提取和内联对调用者身份、栈帧深度及测试归属的影响。不要求普通格式清理保持所有源码行号；但明确依赖 caller、堆栈或位置的契约不能忽略。
 
+## unsafe 与跨语言边界
+
+涉及 [unsafe.Pointer](https://pkg.go.dev/unsafe#Pointer)／uintptr、系统调用或零拷贝视图时，核对目标版本允许的转换形式、对象范围、对齐／布局、别名、不可变性和 GC 存活。uintptr 是整数，不是维持对象存活的引用；不能把规范要求的同一表达式或调用参数内转换拆为普通中间变量。保留 [runtime.KeepAlive](https://pkg.go.dev/runtime#KeepAlive) 等生命周期约束，但不能用它为本来不合法的转换补救。能证明等价时可改用普通索引等安全写法，不为保留 unsafe 而保留。
+
+例如，p 非 nil 且结果仍在原分配对象内的指针算术，不能这样拆分：
+
+```go
+// 先核对对象范围等前提。
+next := unsafe.Pointer(uintptr(p) + offset)
+```
+
+```go
+// 非等价候选：uintptr 被存入变量后再转回指针。
+addr := uintptr(p)
+next := unsafe.Pointer(addr + offset)
+```
+
+涉及 cgo 时还须核对 [Go/C 指针传递与保留](https://pkg.go.dev/cmd/cgo#hdr-Passing_pointers)、pinning、分配与释放 owner；保留前导注释只是构建约束。不因 vet、race、checkptr 或单次运行通过便认定转换有效。
+
 ## 测试契约
 
 清理测试保留输入、断言、失败／跳过条件、setup／cleanup、同步及 Example 输出注释。现有覆盖不足以固定相关契约时，必要且可行地补最小行为测试；不能验证的转换保留并说明缺口。测试设施不扩大生产 API 或增设生产全局开关，覆盖率、跳过用例或交叉编译不代表路径已实际执行。

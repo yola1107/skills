@@ -15,6 +15,7 @@ func Relay(r io.Reader, dst []byte) (int, error) {
 ```
 
 - guard 可能有意清空失败部分值，defer 也可能读取局部 err。检查直返、错误优先级和部分成功结果；持久化、事务提交、Flush／Close 错误可能影响成功契约。
+- 检查协议状态与迭代结束错误：[http.Client.Do](https://pkg.go.dev/net/http#Client.Do) 的非 2xx 不自动返回 error，是否失败按业务协议判断；[Rows.Err](https://pkg.go.dev/database/sql#Rows.Err) 与 [Scanner.Err](https://pkg.go.dev/bufio#Scanner.Err) 区分正常结束和读取失败。检查响应 Body、Rows 等在成功、失败与提前退出时的关闭责任；责任已转移时不提前关闭，不为连接复用无限量读完不可信响应。
 - 核对求值次数、顺序与短路；未使用结果仍可能含外部效果，类型断言、索引或 nil 访问也可能产生原有 panic。
 - 沿可达入口核对校验职责、调用前提和失败前的副作用；局部 guard 的存在或缺失均不能独立证明安全或缺陷。
 
@@ -30,6 +31,8 @@ func CopyResult(buf *bytes.Buffer) []byte {
 ```
 
 - 检查值接收者、赋值、返回和 range 是否复制已使用的 Mutex、RWMutex、Once、WaitGroup、typed atomic 等不可复制值。普通 pointer／channel 字段只复制引用，不能当作复制锁状态。核对可变状态的权威来源与修改入口；快照、缓存和恢复证据也可能有独立职责。
+
+- 涉及 [unsafe.Pointer](https://pkg.go.dev/unsafe#Pointer)、uintptr、系统调用或跨语言指针时，核对允许的转换形式、对象范围／布局、存活与所有权。uintptr 不保持对象存活；提取中间变量可能破坏必须在同一表达式或调用参数中完成的转换。cgo 另核对 [Go/C 指针传递与保留规则](https://pkg.go.dev/cmd/cgo#hdr-Passing_pointers)，保留前导注释不代表运行时安全。vet、race 或 checkptr 通过均不能替代这些约束。
 
 ## Context、同步与资源
 
@@ -57,9 +60,16 @@ cgo 前导注释、构建约束和工具指令参与编译或生成，不能当�
 
 ## 输入与安全边界
 
-- 从不可信输入追到 SQL、命令、模板、日志和鉴权等 sink。SQL 值参数化，动态标识符另查白名单；os/exec 直接 Command 不经 shell，shell 文本、可控程序或选项分别判断。
-- 登录不等于资源授权，核对租户与资源归属。秘密只报告位置，不复制凭据。路径检查考虑平台、符号链接与 TOCTOU；Clean／字符串前缀不足以证明边界，识别目标版本支持的 os.Root 或已有等效实现。
-- 超时不证明外部写入失败；重试、幂等、事务和恢复证据沿调用链核验，日志及错误不能把中间阶段当成最终成功。
+按涉及的入口和数据流选择以下主题；同时核对部署、调用前提及已有防护，不把危险 API、缺少局部 guard 或固定配置值直接当成漏洞。
+
+- **注入与路径**：从不可信输入追到 SQL、命令、模板等 sink。SQL 值参数化，动态标识符另查白名单；os/exec 直接 Command 不经 shell，shell 文本、可控程序或选项分别判断。HTML 输出核对上下文转义及可信类型绕过，[text/template](https://pkg.go.dev/text/template) 不提供 html/template 的自动转义。路径检查考虑平台、符号链接与 TOCTOU；Clean／字符串前缀不足以证明边界，识别目标版本支持的 os.Root 或已有等效实现。
+- **身份与权限**：登录不等于资源授权，核对租户、资源归属和每个特权入口。令牌验签、允许算法、签发者／受众、有效期和重放防护按协议检查；不能信任客户端自报身份。涉及浏览器访问时，按认证方式核对 Cookie 属性、CSRF、CORS 与相关响应头，不机械套用到非浏览器服务。
+- **随机数、加密与 TLS**：令牌、密钥等安全用途核对密码学随机源，不把普通业务随机一律替换为 crypto/rand。按用途核对成熟密码方案、认证完整性、nonce 约束与密钥管理。TLS 检查证书链、目标身份和自定义验证的真实效果；[InsecureSkipVerify](https://pkg.go.dev/crypto/tls#Config) 配合有效 VerifyConnection 等机制不自动构成漏洞，空回调或忽略验证错误也不能当作已有防护；核对会话恢复等适用路径。
+- **出站请求与 SSRF**：可控 URL 追到实际连接目的地，核对 scheme、host／port、重定向各跳、DNS 解析与连接时的地址、代理和网络出口策略；仅检查 URL 格式或首次解析不能证明安全。区分明确可信目的地与任意外部 URL 的业务契约，不把合法内网调用一律禁止。按需查 [SSRF 边界](https://cheatsheetseries.owasp.org/cheatsheets/Server_Side_Request_Forgery_Prevention_Cheat_Sheet.html)。
+- **资源耗尽**：核对请求／响应体、解压后数据、批量规模、并发／队列和重试的有效上限及超时覆盖；Content-Length 或仅压缩前大小不足以限制实际读取。限制的 owner 可以是已证实有效的网关或调用方；流式、长连接按协议处理，不能统一套用固定超时或无条件缓存完整输入。
+- **敏感信息**：检查程序是否把凭据、token、个人信息或内部错误写入日志、响应、追踪及调试端点，按接收者和数据分级判断脱敏与访问控制。审核报告只指出位置和影响，不复制秘密；示例占位符、公钥和非敏感标识不自动算凭据泄露。
+- **外部写入**：超时不证明写入失败；重试、幂等、事务和恢复证据沿调用链核验，日志及错误不能把中间阶段当成最终成功。
+- **依赖漏洞**：依赖变更、安全敏感路径或明确安全审核时，检查项目已有且版本固定的 [govulncheck](https://pkg.go.dev/golang.org/x/vuln/cmd/govulncheck) 等入口。记录可获取的工具版本、漏洞数据库来源／时点、Go 与依赖版本、构建条件和可达性证据；未报告可达调用不等于整体安全。缺少工具、所需的联网授权或适用环境时记验证缺口，不擅自安装最新版、升级依赖或声称扫描通过；执行遵守只读验证边界。
 
 ## 数值与性能
 

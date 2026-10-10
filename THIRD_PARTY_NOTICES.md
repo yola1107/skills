@@ -12,7 +12,7 @@
 - 原版技能、直接引用的共享 checklist 与许可证均逐字节保存在该提交的 `addyosmani/` 下。
 - 平铺基线提交为 `0b07d7d`：审核技能的两份原版 checklist 放在其目录内，入口仅修正两处相对路径；其他上游正文、示例和来源署名保持原样。
 - 导入后的定制以该基线逐项修改：保留原章节与来源署名，修正执行边界、非等价示例和技术栈适用条件，并为两个技能分别增加独立的 Go 专项 reference。
-- 原 `code-review-and-quality/`、`code-simplification/` 及其参考资料均已移除；清理技能中有用且不重复的规则和直返反例合并到 `go-code-simplifier/SKILL.md`。
+- 原 `code-review-and-quality/`、`code-simplification/` 及其参考资料均已移除；清理技能中有用且不重复的流程规则合并到 `go-code-simplifier/SKILL.md`，直返反例现位于 `go-code-simplifier/references/go-equivalence.md`。
 - 原清理技能另注明受 [Claude Code Simplifier 插件](https://github.com/anthropics/claude-plugins-official/blob/main/plugins/code-simplifier/agents/code-simplifier.md)启发，此处保留该来源署名。
 
 上述上游内容沿用 MIT 许可。Copyright (c) 2025 Addy Osmani；完整条款集中保留于本文的 [MIT License](#mit-license) 小节。
@@ -44,6 +44,19 @@
 - 当前本地修订收敛为中文 Go 审核流程与按需语义参考：补全暂存/未跟踪和目录范围、项目与 module 边界，按契约判断错误和并发生命周期，取消机械严重度阈值，移除有误或非等价的示例及未标版本的通用 lint 配置。保留上游来源和 MIT 许可，不依赖另行安装技能。
 - 本次仅导入 Go reviewer 及其直接引用的 Go patterns；未导入 ECC 的命令、hooks、配置或其他技能。
 - 上游 [LICENSE](https://github.com/affaan-m/ECC/blob/ef648e01899ba3e8dc6371642deaaf64b4477775/LICENSE) 采用 MIT 许可；Copyright (c) 2026 Affaan Mustafa。完整条款与其他 MIT 来源共用本文的 [MIT License](#mit-license) 小节，版权声明按来源分别保留。
+
+## 规则取舍与本地补充
+
+以下记录基于上文固定提交的选择，不代表完整复制上游，也不把上游未来新增内容自动视为本地缺项。两个技能独立维护适用边界；来源链接用于追溯，不授权执行上游的工具安装、自动修复或提交策略。
+
+| 来源 | 保留或补充 | 有意纠正或不采用 |
+| --- | --- | --- |
+| Anthropic | 行为保持、项目一致性、清晰度、避免过度简化和限定范围 | JavaScript／React 专用风格、模型配置与未经任务授权的主动修改 |
+| Addy | 理解后再清理、历史原因查证、维护收益和热点退化检查；直返反例迁入 Go 等价参考 | 按函数／改动行数强制拆分、每个小改动都跑全套测试或自动提交 |
+| samber | 命名、错误与共享语义、生命周期、契约测试；补回安全用途随机数、TLS、SSRF、资源上限、敏感数据及按范围扫描依赖的调查主题 | 强制非 nil 集合、错误一律包装、按覆盖率相信等价、API 未达即删除、机械安全等级及未按 Go 实现核实的示例 |
+| ECC | 按实际影响审核、授权与不可信材料边界；保留安全检查意图并核对有效防护 | 仅凭 InsecureSkipVerify、函数长度或未用指定并发模式定严重缺陷；非等价的池化／拼接示例与通用 lint 配置 |
+
+本地按 Go 官方契约补充 HTTP 状态、Rows／Scanner 迭代错误、unsafe 与 cgo 指针、调用者身份等边界；相应文档直接链接官方依据。安全主题主要由上文 samber 的 golang-security 及 ECC Go reviewer 提炼，SSRF 另链接 OWASP 查证。未复制完整外部安全清单、通用沙箱实现或新版工具安装流程；不把参考文字当成漏洞或行为等价的证明。
 
 ## MIT License
 

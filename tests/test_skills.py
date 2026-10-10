@@ -1,5 +1,6 @@
 """Offline repository checks, not model/agent evaluations (Python 3.9+)."""
 
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -38,6 +39,26 @@ def markdown_links(path: Path) -> list[str]:
 def heading_anchors(path: Path) -> set[str]:
     headings = re.findall(r"^#{1,6}\s+(.+)$", path.read_text(encoding="utf-8"), re.M)
     return {re.sub(r"[^\w\- ]", "", h.lower()).replace(" ", "-") for h in headings}
+
+
+def apply_setup_edits(target: Path, edits: list[dict]) -> None:
+    """Apply supervisor-owned evaluation setup, never model-supplied commands."""
+    pending = {}
+    root = target.resolve()
+    for edit in edits:
+        path = (root / edit["path"]).resolve()
+        if not path.is_relative_to(root) or not path.is_file():
+            raise ValueError("setup path must be an existing fixture file")
+        if path.suffix != ".go" or path.name.endswith("_test.go"):
+            raise ValueError("setup may only change fixture implementation files")
+        before, after = edit["before"], edit["after"]
+        text = pending.get(path, path.read_text(encoding="utf-8"))
+        if not before or text.count(before) != 1 or before == after:
+            raise ValueError("setup replacement must have exactly one target and a change")
+        pending[path] = text.replace(before, after)
+    # Validate every edit before writing anything.
+    for path, text in pending.items():
+        path.write_text(text, encoding="utf-8")
 
 
 class DocumentTests(unittest.TestCase):
@@ -95,6 +116,47 @@ class DocumentTests(unittest.TestCase):
         self.assertEqual(len(commands), 1)
         self.assertEqual(shlex.split(commands[0]), SAFE_DIFF)
 
+    def test_license_texts_are_preserved(self):
+        text = (ROOT / "THIRD_PARTY_NOTICES.md").read_text(encoding="utf-8")
+        blocks = re.findall(r"```text\n(.*?)```", text, re.S)
+        self.assertEqual(
+            [hashlib.sha256(block.encode()).hexdigest() for block in blocks],
+            ["30b4dc1b33c299fadf455500c5431d4b7e036dd8685b3398dfc99808f4e3ed32",
+             "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"],
+            "license bodies differ from the fixed upstream baseline",
+        )
+
+    def test_evaluation_answers_are_not_loaded_by_skill_links(self):
+        for skill in SKILLS:
+            for doc in (ROOT / skill).rglob("*.md"):
+                for link in markdown_links(doc):
+                    parsed = urlsplit(link)
+                    if parsed.scheme or parsed.netloc or not parsed.path:
+                        continue
+                    target = (doc.parent / unquote(parsed.path)).resolve()
+                    self.assertFalse(target.is_relative_to(ROOT / "evals"), link)
+                    self.assertFalse(target.is_relative_to(ROOT / "tests"), link)
+
+    def test_setup_edits_reject_unsafe_or_ambiguous_paths(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            target = Path(tmp)
+            shutil.copytree(ROOT / "evals/fixtures/access", target / "fixture")
+            fixture = target / "fixture"
+            snapshot = {p: p.read_bytes() for p in fixture.iterdir()}
+            bad_edits = [
+                {"path": "../outside.go", "before": "a", "after": "b"},
+                {"path": "access_test.go", "before": "package access", "after": "package changed"},
+                {"path": "access.go", "before": "absent target", "after": "replacement"},
+            ]
+            for edit in bad_edits:
+                with self.subTest(edit=edit), self.assertRaises(ValueError):
+                    apply_setup_edits(fixture, [edit])
+            valid = {"path": "access.go", "before": "authenticated || ownerID", "after": "authenticated && ownerID"}
+            with self.assertRaises(ValueError):
+                apply_setup_edits(fixture, [valid, bad_edits[-1]])
+            for path, data in snapshot.items():
+                self.assertEqual(path.read_bytes(), data)
+
     def test_evaluation_manifest_has_real_inputs(self):
         manifest = json.loads((ROOT / "evals/cases.json").read_text(encoding="utf-8"))
         self.assertEqual(manifest["schema_version"], 1)
@@ -109,6 +171,14 @@ class DocumentTests(unittest.TestCase):
                 self.assertTrue(list(fixture.glob("*_test.go")))
                 self.assertTrue(case["prompt"] and case["expected_output"] and case["assertions"])
                 self.assertTrue(set(case["skills"]).issubset(SKILLS))
+                if case.get("setup_edits"):
+                    self.assertEqual(len({e["id"] for e in case["setup_edits"]}), len(case["setup_edits"]))
+                    with tempfile.TemporaryDirectory() as tmp:
+                        target = Path(tmp) / "fixture"
+                        shutil.copytree(fixture, target)
+                        apply_setup_edits(target, case["setup_edits"])
+                        for original in fixture.glob("*_test.go"):
+                            self.assertEqual(original.read_bytes(), (target / original.name).read_bytes())
 
 
 @unittest.skipUnless(shutil.which("git"), "Git unavailable: query regressions NOT executed")
@@ -215,7 +285,7 @@ class GoFixtureTests(unittest.TestCase):
         self.assertEqual(result.stdout, "", "fixture formatting differs from gofmt")
 
     def test_go_vet(self):
-        for name in ("cleanup", "access"):
+        for name in ("cleanup", "access", "boundaries"):
             with self.subTest(fixture=name):
                 self.assert_success(["go", "vet", "./..."], self.fixtures / name)
 
@@ -261,6 +331,85 @@ class GoFixtureTests(unittest.TestCase):
                 result = run(["go", "test", "-count=1", "-timeout=30s", "-run", "^" + test + "$", "./..."], target, self.env)
                 self.assertNotEqual(result.returncode, 0, "non-equivalent mutation survived")
                 self.assertIn("--- FAIL: " + test, result.stdout, "expected contract failure, not a build error")
+
+    def boundary_defect_case(self):
+        cases = json.loads((ROOT / "evals/cases.json").read_text(encoding="utf-8"))["cases"]
+        return next(case for case in cases if case["id"] == "review-boundary-defects")
+
+    def format_go(self, target):
+        self.assert_success(["gofmt", "-w", *map(str, sorted(target.glob("*.go")))], target)
+
+    def test_boundary_contracts_pass(self):
+        result = self.assert_success(["go", "test", "-count=1", "-timeout=30s", "-v", "./..."], self.fixtures / "boundaries")
+        self.assertEqual(len(re.findall(r"^--- PASS: Test", result.stdout, re.M)), 10, result.stdout)
+        self.assertNotIn("SKIP", result.stdout)
+
+    def test_boundary_mutations_fail_and_repairs_pass(self):
+        for edit in self.boundary_defect_case()["setup_edits"]:
+            with self.subTest(mutation=edit["id"]):
+                target = self.root / ("boundary-" + edit["id"])
+                shutil.copytree(self.fixtures / "boundaries", target)
+                source = target / edit["path"]
+                original = source.read_bytes()
+                apply_setup_edits(target, [edit])
+                self.format_go(target)
+                self.assert_success(["go", "build", "./..."], target)
+                cmd = ["go", "test", "-count=1", "-timeout=30s", "-run", "^" + edit["expected_test"] + "$", "./..."]
+                result = run(cmd, target, self.env)
+                self.assertNotEqual(result.returncode, 0, "seeded defect survived")
+                self.assertIn("--- FAIL: " + edit["expected_test"], result.stdout, "expected assertion failure, not build failure")
+                source.write_bytes(original)
+                self.assert_success(cmd, target)
+
+    def test_combined_boundary_defect_case_is_executable(self):
+        target = self.root / "boundary-combined"
+        shutil.copytree(self.fixtures / "boundaries", target)
+        edits = self.boundary_defect_case()["setup_edits"]
+        apply_setup_edits(target, edits)
+        self.format_go(target)
+        self.assert_success(["go", "build", "./..."], target)
+        result = run(["go", "test", "-count=1", "-timeout=30s", "./..."], target, self.env)
+        self.assertNotEqual(result.returncode, 0)
+        for name in {edit["expected_test"] for edit in edits}:
+            self.assertIn("--- FAIL: " + name, result.stdout)
+
+    def test_boundary_checkptr(self):
+        self.assert_success(["go", "test", "-count=1", "-timeout=30s", "-gcflags=all=-d=checkptr=2", "./..."], self.fixtures / "boundaries")
+
+    def test_split_uintptr_is_diagnosed_not_executed(self):
+        target = self.root / "uintptr-split"
+        shutil.copytree(self.fixtures / "boundaries", target)
+        source = target / "unsafe.go"
+        original = source.read_bytes()
+        apply_setup_edits(target, [{
+            "path": "unsafe.go",
+            "before": "return (*uint32)(unsafe.Pointer(uintptr(ptr) + uintptr(index)*unsafe.Sizeof(words[0])))",
+            "after": "addr := uintptr(ptr)\n\treturn (*uint32)(unsafe.Pointer(addr + uintptr(index)*unsafe.Sizeof(words[0])))",
+        }])
+        self.format_go(target)
+        self.assert_success(["go", "build", "./..."], target)
+        result = run(["go", "vet", "./..."], target, self.env)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("possible misuse of unsafe.Pointer", result.stdout)
+        source.write_bytes(original)
+        self.assert_success(["go", "vet", "./..."], target)
+
+    def test_safe_index_rewrite_preserves_contracts(self):
+        target = self.root / "safe-index"
+        shutil.copytree(self.fixtures / "boundaries", target)
+        apply_setup_edits(target, [
+            {"path": "unsafe.go", "before": 'import "unsafe"\n', "after": ""},
+            {"path": "unsafe.go",
+             "before": "ptr := unsafe.Pointer(&words[0])\n\treturn (*uint32)(unsafe.Pointer(uintptr(ptr) + uintptr(index)*unsafe.Sizeof(words[0])))",
+             "after": "return &words[index]"},
+        ])
+        self.format_go(target)
+        self.assert_success(["go", "vet", "./..."], target)
+        self.assert_success(["go", "test", "-count=1", "-timeout=30s", "./..."], target)
+
+    @unittest.skipUnless(os.environ.get("SKILLS_RUN_RACE") == "1", "optional race check: set SKILLS_RUN_RACE=1")
+    def test_boundaries_race(self):
+        self.assert_success(["go", "test", "-race", "-count=1", "-timeout=30s", "./..."], self.fixtures / "boundaries")
 
     @unittest.skipUnless(os.environ.get("SKILLS_RUN_RACE") == "1", "optional race check: set SKILLS_RUN_RACE=1")
     def test_cleanup_race(self):
