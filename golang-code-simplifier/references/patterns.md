@@ -164,6 +164,65 @@ r.playerresult = resultPlayers
 
 `len(players) == 0` 时两种写法都得到空切片而不是 nil，值的形态不变。只把函数开头的 `var (...)` 块拆成一行行 `:=`、位置不动，不算收紧作用域。
 
+## 命名
+
+**按内容和职责命名** [A] 局部变量、未导出函数内的名字；前提见 traps.md「命名」。
+
+```go
+// 改前：_session 和 session 只差一个下划线，读者分不清哪个是房间里保存的会话；
+// ok1、ok2 要回头看赋值才知道各自代表什么。
+_session, ok1 := r.sessions[session.GetUserId()]
+userinfo, ok2 := r.playersbet[session.GetUserId()]
+if !ok1 || !ok2 || userinfo.Pid == -1 {
+	return errNoPot
+}
+
+// 改后
+uid := session.GetUserId()
+roomSession, hasSession := r.sessions[uid]
+betInfo, hasBet := r.playersbet[uid]
+if !hasSession || !hasBet || betInfo.Pid == -1 {
+	return errNoPot
+}
+```
+
+`uid := session.GetUserId()` 把两次调用合并成一次，需要先确认 `GetUserId` 没有副作用、两次调用之间返回值不变（B 级）。
+
+**长短与作用域相称**
+
+```go
+// 短作用域：短名就够
+for i, p := range r.pools {
+	total = utils.Add(total, p.GetBetmoney(), r.aibets[i])
+}
+
+// 跨越几十行的变量：完整名字，带单位
+startMilli := time.Now().UnixMilli()   // 原名 ts
+settleSec := r.starttime / 1000        // 原表达式直接写在调用参数里，单位不明
+```
+
+**结果与返回值** [A]
+
+```go
+// 改前
+func (m *model) getlog(buildid string, page, size int) (ret []*pb.Log, e error)
+
+// 改后：结果名说明内容，错误统一叫 err，缩写写成 ID
+func (m *model) getlog(buildID string, page, size int) (logs []*pb.Log, err error)
+```
+
+**参数遮蔽内置名** [B]
+
+```go
+// 改前：参数 min 遮蔽了内置 min，函数体里想用内置函数时会编译失败或误用
+func SplitInt(total, min float64, num int32) []float64
+
+// 改后：导出函数的参数名不属于函数类型，调用方不受影响
+func SplitInt(total, minUnit float64, num int32) []float64
+```
+
+**保持原样的名字**：receiver `this` 是本仓库的统一写法；`pb` 生成的字段名（`Agentid`、`Pid`）和导出方法名（`SendMsgForMapSessios`）改名会影响协议或调用方，拼写问题列入「发现」。
+
 ## 错误处理
 
 **合并末尾返回** [B] 前提：`err` 的静态类型是 `error`（见 traps.md「错误」）。
@@ -395,7 +454,7 @@ for i := 0; i < n; i++ { ... }
 for i := range n { ... }
 ```
 
-## 反例：不要这样简化
+## 反例
 
 **合并失败处理不同的两段代码**
 
