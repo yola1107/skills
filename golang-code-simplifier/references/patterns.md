@@ -551,21 +551,30 @@ if exp >= nextLevelExp {
 level := func() int { if exp >= nextLevelExp { return 2 }; return 1 }()
 ```
 
-**删除错误分支末尾的 return**
+**删除错误分支末尾的 return，或把带日志的错误分支合并成一个 return**
 
 ```go
 // 改前：保持原样
-if err = db.Insert(logs); err != nil {
-	m.Errorln(err)
+if err = db.GameDB().CreateTable(TableBr001log, &pb.DBBR001Log{}); err != nil {
+	this.module.Errorln(err)
 	return
 }
 return
 
-// 不要改成：以后在末尾追加的代码会在出错时执行
-if err = db.Insert(logs); err != nil {
-	m.Errorln(err)
+// 不要改成：调用移出了 if，作用域变宽；错误分支没有 return，
+// 以后在 return err 之前追加的代码会在出错时执行
+err := db.GameDB().CreateTable(TableBr001log, &pb.DBBR001Log{})
+if err != nil {
+	this.module.Errorln(err)
 }
-return
+return err
+
+// 要去掉命名结果时这样改：错误分支仍然显式返回
+if err := db.GameDB().CreateTable(TableBr001log, &pb.DBBR001Log{}); err != nil {
+	this.module.Errorln(err)
+	return err
+}
+return nil
 ```
 
 **条件取反后留下过时注释**
