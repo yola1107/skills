@@ -8,7 +8,7 @@ Go 风格依据 [Effective Go](https://go.dev/doc/effective_go)、[Go Code Revie
 
 - 来源：[anthropics/claude-plugins-official](https://github.com/anthropics/claude-plugins-official/blob/f713a7c59b729741282f9c2d9a04e28e2abbd20c/plugins/code-simplifier/agents/code-simplifier.md)。
 - 固定提交：`f713a7c59b729741282f9c2d9a04e28e2abbd20c`；首次借鉴日期：2026-10-09。
-- 借鉴保持行为、改善清晰度、项目一致性和适度简化的原则，改写为中文 Go Skill。未导入 JavaScript／React 专用规则、模型配置或自动执行策略。采用 Apache-2.0，许可正文见下文。
+- 以保持行为、遵循项目标准、改善清晰度、适度简化和限定范围五条原则为骨架，改写为中文 Go Skill；补充 Go 的 early-return、if-init、作用域与返回契约判断，保留简短执行流程。未导入 JavaScript／React 专用规则、模型配置或自动执行策略。采用 Apache-2.0，许可正文见下文。
 
 ## samber/cc-skills-golang
 
