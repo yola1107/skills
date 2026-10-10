@@ -2,6 +2,8 @@
 
 本文件记录 `go-code-simplifier` 的来源与许可，随技能安装和分发保留。规则已按本地 Go 清理任务改写，上游链接仅用于追溯。
 
+Go 风格依据 [Effective Go](https://go.dev/doc/effective_go)、[Go Code Review Comments](https://go.dev/wiki/CodeReviewComments) 和 [Go Doc Comments](https://go.dev/doc/comment)。这些链接作为官方查阅依据，未复制文档正文；第三方清理流程不作为 Go 官方风格规范。
+
 ## Anthropic Claude Code Simplifier
 
 - 来源：[anthropics/claude-plugins-official](https://github.com/anthropics/claude-plugins-official/blob/f713a7c59b729741282f9c2d9a04e28e2abbd20c/plugins/code-simplifier/agents/code-simplifier.md)。
@@ -12,7 +14,7 @@
 
 - 来源：[samber/cc-skills-golang](https://github.com/samber/cc-skills-golang/tree/8e899e20ff0cd4dc524af3993e4c62d8ee8c5717)。
 - 固定提交：`8e899e20ff0cd4dc524af3993e4c62d8ee8c5717`；首次借鉴日期：2026-10-09。
-- 择要重述命名、声明、控制流和行为等价边界，保留本地默认风格；未导入上游整套技能、审批／提交流程、覆盖率阈值或强制非 nil 集合等规则。采用 MIT；Copyright (c) 2026 Samuel Berthe。
+- 择要参考命名、声明、控制流和行为等价边界；当前代码风格以 Go 官方文档为准。未导入上游整套技能、审批／提交流程、覆盖率阈值或强制非 nil 集合等规则。采用 MIT；Copyright (c) 2026 Samuel Berthe。
 
 ## MIT License
 
