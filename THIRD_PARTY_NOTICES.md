@@ -1,73 +1,27 @@
 # 第三方来源、版权与许可
 
-本文件集中维护两个 Go 技能的来源、改编关系、版权声明与许可正文。安装或分发技能时一并保留本文件；技能目录内不另存许可证副本。
-
-## Addy Osmani
-
-本节记录原 `code-review-and-quality/` 和 `code-simplification/` 的 Addy Osmani 来源与许可。两个原技能现已移除；原清理技能中适用于 Go 的规则已择要合并到 `go-code-simplifier/`，下列来源与许可声明随合并内容保留；`go-code-simplifier/` 其余内容的既有来源与许可不因本次合并而改变。
-
-- 上游仓库：https://github.com/addyosmani/agent-skills
-- 上游提交：`1401c8b8030e023baeebb31781a6653fe8e93026`
-- 原版导入提交：`b119682`；导入日期：2026-10-08。
-- 原版技能、直接引用的共享 checklist 与许可证均逐字节保存在该提交的 `addyosmani/` 下。
-- 平铺基线提交为 `0b07d7d`：审核技能的两份原版 checklist 放在其目录内，入口仅修正两处相对路径；其他上游正文、示例和来源署名保持原样。
-- 导入后的定制以该基线逐项修改：保留原章节与来源署名，修正执行边界、非等价示例和技术栈适用条件，并为两个技能分别增加独立的 Go 专项 reference。
-- 原 `code-review-and-quality/`、`code-simplification/` 及其参考资料均已移除；清理技能中有用且不重复的流程规则合并到 `go-code-simplifier/SKILL.md`，直返反例现位于 `go-code-simplifier/references/go-equivalence.md`。
-- 原清理技能另注明受 [Claude Code Simplifier 插件](https://github.com/anthropics/claude-plugins-official/blob/main/plugins/code-simplifier/agents/code-simplifier.md)启发，此处保留该来源署名。
-
-上述上游内容沿用 MIT 许可。Copyright (c) 2025 Addy Osmani；完整条款集中保留于本文的 [MIT License](#mit-license) 小节。
+本文件记录 `go-code-simplifier` 的来源与许可，随技能安装和分发保留。规则已按本地 Go 清理任务改写，上游链接仅用于追溯。
 
 ## Anthropic Claude Code Simplifier
 
-- 上游仓库：[anthropics/claude-plugins-official](https://github.com/anthropics/claude-plugins-official)。
-- 固定上游提交：`f713a7c59b729741282f9c2d9a04e28e2abbd20c`；借鉴日期：2026-10-09。
-- 来源：[plugins/code-simplifier/agents/code-simplifier.md](https://github.com/anthropics/claude-plugins-official/blob/f713a7c59b729741282f9c2d9a04e28e2abbd20c/plugins/code-simplifier/agents/code-simplifier.md)。
-- `go-code-simplifier/SKILL.md` 借鉴其五条清理原则和简短执行流程，改写为中文 Go Skill：以 Effective Go 与 Go Code Review Comments 替换 JavaScript／React 风格约定，保留本地范围、一字段一行、三组 imports 和行为等价要求；Go 专项检查迁入 `references/go-equivalence.md` 按需读取。未导入上游模型配置、插件注册或自动执行策略。
-- 上游插件采用 Apache-2.0；从上述固定提交取得的许可正文逐字节保留于本文的 [Apache License 2.0](#apache-license-20) 小节。已有 Addy Osmani 合并内容的来源与 MIT 许可仍按前节保留。
+- 来源：[anthropics/claude-plugins-official](https://github.com/anthropics/claude-plugins-official/blob/f713a7c59b729741282f9c2d9a04e28e2abbd20c/plugins/code-simplifier/agents/code-simplifier.md)。
+- 固定提交：`f713a7c59b729741282f9c2d9a04e28e2abbd20c`；首次借鉴日期：2026-10-09。
+- 借鉴保持行为、改善清晰度、项目一致性和适度简化的原则，改写为中文 Go Skill。未导入 JavaScript／React 专用规则、模型配置或自动执行策略。采用 Apache-2.0，许可正文见下文。
 
 ## samber/cc-skills-golang
 
-- 上游仓库：[samber/cc-skills-golang](https://github.com/samber/cc-skills-golang)。
-- 固定上游提交：`8e899e20ff0cd4dc524af3993e4c62d8ee8c5717`；借鉴日期：2026-10-09。
-- 参考 [golang-naming](https://github.com/samber/cc-skills-golang/blob/8e899e20ff0cd4dc524af3993e4c62d8ee8c5717/skills/golang-naming/SKILL.md)、[golang-code-style](https://github.com/samber/cc-skills-golang/blob/8e899e20ff0cd4dc524af3993e4c62d8ee8c5717/skills/golang-code-style/SKILL.md)、[golang-refactoring](https://github.com/samber/cc-skills-golang/blob/8e899e20ff0cd4dc524af3993e4c62d8ee8c5717/skills/golang-refactoring/SKILL.md) 及其 identifiers、details、go-tooling、safety-net 参考资料。
-- 本地择要中文重述命名去重、复杂条件表达、工具能力边界及按改动路径建立行为测试的建议，合入 `go-code-simplifier/SKILL.md` 与 `references/go-equivalence.md`；风格依据统一为 Effective Go 与 Go Code Review Comments，保留本地三组 imports 和一字段一行默认约定。未导入上游技能、审批／提交编排、覆盖率阈值或可能改变既有行为的强制风格规则。
-- Go 审核技能另参考同一固定提交的 [golang-error-handling](https://github.com/samber/cc-skills-golang/blob/8e899e20ff0cd4dc524af3993e4c62d8ee8c5717/skills/golang-error-handling/SKILL.md)、[golang-context](https://github.com/samber/cc-skills-golang/blob/8e899e20ff0cd4dc524af3993e4c62d8ee8c5717/skills/golang-context/SKILL.md)、[golang-concurrency](https://github.com/samber/cc-skills-golang/blob/8e899e20ff0cd4dc524af3993e4c62d8ee8c5717/skills/golang-concurrency/SKILL.md)、[golang-safety](https://github.com/samber/cc-skills-golang/blob/8e899e20ff0cd4dc524af3993e4c62d8ee8c5717/skills/golang-safety/SKILL.md)、[golang-structs-interfaces](https://github.com/samber/cc-skills-golang/blob/8e899e20ff0cd4dc524af3993e4c62d8ee8c5717/skills/golang-structs-interfaces/SKILL.md)、[golang-testing](https://github.com/samber/cc-skills-golang/blob/8e899e20ff0cd4dc524af3993e4c62d8ee8c5717/skills/golang-testing/SKILL.md)、[golang-security](https://github.com/samber/cc-skills-golang/blob/8e899e20ff0cd4dc524af3993e4c62d8ee8c5717/skills/golang-security/SKILL.md)、[golang-performance](https://github.com/samber/cc-skills-golang/blob/8e899e20ff0cd4dc524af3993e4c62d8ee8c5717/skills/golang-performance/SKILL.md)、[golang-lint](https://github.com/samber/cc-skills-golang/blob/8e899e20ff0cd4dc524af3993e4c62d8ee8c5717/skills/golang-lint/SKILL.md) 及其相关参考。
-- 从中择要提炼 typed nil、值复制、Context 与同步责任、测试生命周期和按项目入口验证的规则，合入 `go-code-review/SKILL.md` 与 `references/golang-patterns.md`。已有错误、安全及性能判断按契约收敛；未导入上游自动修复、工具安装、额外技能依赖、并行编排或缺少契约依据的强制模式。
-- 上游采用 MIT 许可；Copyright (c) 2026 Samuel Berthe。完整条款与其他 MIT 来源共用本文的 [MIT License](#mit-license) 小节，版权声明按来源分别保留。
-
-## ECC
-
-- 上游仓库：[affaan-m/ECC](https://github.com/affaan-m/ECC)（原名 `everything-claude-code`）。
-- 固定上游提交：`ef648e01899ba3e8dc6371642deaaf64b4477775`；导入日期：2026-10-08。
-- `go-code-review/SKILL.md` 来自 [agents/go-reviewer.md](https://github.com/affaan-m/ECC/blob/ef648e01899ba3e8dc6371642deaaf64b4477775/agents/go-reviewer.md)。导入基线提交为 `88e52c1`，当时目录为 `go-reviewer/`：Agent 转为 Skill，仅适配元数据和本地参考路径。
-- `go-code-review/references/golang-patterns.md` 的原版 [skills/golang-patterns/SKILL.md](https://github.com/affaan-m/ECC/blob/ef648e01899ba3e8dc6371642deaaf64b4477775/skills/golang-patterns/SKILL.md) 逐字节保留在该导入基线中。
-- 当前本地修订收敛为中文 Go 审核流程与按需语义参考：补全暂存/未跟踪和目录范围、项目与 module 边界，按契约判断错误和并发生命周期，取消机械严重度阈值，移除有误或非等价的示例及未标版本的通用 lint 配置。保留上游来源和 MIT 许可，不依赖另行安装技能。
-- 本次仅导入 Go reviewer 及其直接引用的 Go patterns；未导入 ECC 的命令、hooks、配置或其他技能。
-- 上游 [LICENSE](https://github.com/affaan-m/ECC/blob/ef648e01899ba3e8dc6371642deaaf64b4477775/LICENSE) 采用 MIT 许可；Copyright (c) 2026 Affaan Mustafa。完整条款与其他 MIT 来源共用本文的 [MIT License](#mit-license) 小节，版权声明按来源分别保留。
-
-## 规则取舍与本地补充
-
-以下记录基于上文固定提交的选择，不代表完整复制上游，也不把上游未来新增内容自动视为本地缺项。两个技能独立维护适用边界；来源链接用于追溯，不授权执行上游的工具安装、自动修复或提交策略。
-
-| 来源 | 保留或补充 | 有意纠正或不采用 |
-| --- | --- | --- |
-| Anthropic | 行为保持、项目一致性、清晰度、避免过度简化和限定范围 | JavaScript／React 专用风格、模型配置与未经任务授权的主动修改 |
-| Addy | 理解后再清理、历史原因查证、维护收益和热点退化检查；直返反例迁入 Go 等价参考 | 按函数／改动行数强制拆分、每个小改动都跑全套测试或自动提交 |
-| samber | 命名、错误与共享语义、生命周期、契约测试；补回安全用途随机数、TLS、SSRF、资源上限、敏感数据及按范围扫描依赖的调查主题 | 强制非 nil 集合、错误一律包装、按覆盖率相信等价、API 未达即删除、机械安全等级及未按 Go 实现核实的示例 |
-| ECC | 按实际影响审核、授权与不可信材料边界；保留安全检查意图并核对有效防护 | 仅凭 InsecureSkipVerify、函数长度或未用指定并发模式定严重缺陷；非等价的池化／拼接示例与通用 lint 配置 |
-
-本地按 Go 官方契约补充 HTTP 状态、Rows／Scanner 迭代错误、unsafe 与 cgo 指针、调用者身份等边界；相应文档直接链接官方依据。安全主题主要由上文 samber 的 golang-security 及 ECC Go reviewer 提炼，SSRF 另链接 OWASP 查证。未复制完整外部安全清单、通用沙箱实现或新版工具安装流程；不把参考文字当成漏洞或行为等价的证明。
+- 来源：[samber/cc-skills-golang](https://github.com/samber/cc-skills-golang/tree/8e899e20ff0cd4dc524af3993e4c62d8ee8c5717)。
+- 固定提交：`8e899e20ff0cd4dc524af3993e4c62d8ee8c5717`；首次借鉴日期：2026-10-09。
+- 择要重述命名、声明、控制流和行为等价边界，保留本地默认风格；未导入上游整套技能、审批／提交流程、覆盖率阈值或强制非 nil 集合等规则。采用 MIT；Copyright (c) 2026 Samuel Berthe。
 
 ## MIT License
 
-以下完整条款分别适用于上文的 Addy Osmani、samber/cc-skills-golang 与 ECC 来源内容；各版权声明对应其来源，不改变许可归属。
+以下为 samber 来源的版权声明与 MIT 许可条款。
 
 ```text
 MIT License
 
-Copyright (c) 2025 Addy Osmani
 Copyright (c) 2026 Samuel Berthe
-Copyright (c) 2026 Affaan Mustafa
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -90,7 +44,7 @@ SOFTWARE.
 
 ## Apache License 2.0
 
-以下为 Anthropic Claude Code Simplifier 固定提交中的完整许可正文。
+以下为固定 Anthropic 来源的原有许可正文，保持不变。
 
 ```text
 
