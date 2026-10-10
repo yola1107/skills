@@ -26,6 +26,7 @@ func newRepo(t *testing.T, files map[string]string) string {
 	}
 	for _, args := range [][]string{
 		{"init", "-q"},
+		{"config", "core.autocrlf", "false"},
 		{"add", "-A"},
 		{"-c", "user.name=test", "-c", "user.email=test@example.com", "commit", "-q", "-m", "init"},
 	} {
@@ -135,6 +136,69 @@ func TestExplicitPathsHonorExclusions(t *testing.T) {
 	)
 	assertContains(t, out, "  a/a.go")
 	assertNotContains(t, out, "v.go", "t.go", "y.go", "z.go", "gen.go")
+}
+
+func writeFile(t *testing.T, repo, name, content string) {
+	t.Helper()
+	if err := os.WriteFile(filepath.Join(repo, filepath.FromSlash(name)), []byte(content), 0o644); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestChangedFunctionsAreNamed(t *testing.T) {
+	const before = `package a
+
+import "fmt"
+
+// F prints one.
+func F() {
+	fmt.Println(1)
+}
+
+type T struct{}
+
+func (t *T) M() {
+	fmt.Println(2)
+}
+
+func G() {}
+`
+	repo := newRepo(t, map[string]string{"go.mod": goMod, "a/a.go": before})
+	after := strings.Replace(before, "Println(2)", "Println(3)", 1)
+	after = strings.Replace(after, "type T struct{}", "type T struct{ n int }", 1)
+	writeFile(t, repo, "a/a.go", after)
+	writeFile(t, repo, "a/n.go", "package a\n\nfunc N() {}\n")
+
+	out := runScope(t, repo)
+	assertContains(t, out,
+		"  a/a.go (changed: T.M; outside functions: lines 10)\n",
+		"  a/n.go (new file)\n",
+		"gofmt -l a/a.go a/n.go\n")
+}
+
+func TestDocCommentChangeNamesFunction(t *testing.T) {
+	repo := newRepo(t, map[string]string{
+		"go.mod": goMod,
+		"a/a.go": "package a\n\n// F does x.\nfunc F() {}\n",
+	})
+	writeFile(t, repo, "a/a.go", "package a\n\n// F does y.\nfunc F() {}\n")
+
+	out := runScope(t, repo)
+	assertContains(t, out, "  a/a.go (changed: F)\n")
+}
+
+func TestCRLFReportedOnlyWhenStoredWithCRLF(t *testing.T) {
+	repo := newRepo(t, map[string]string{
+		"go.mod":     goMod,
+		"a/crlf.go":  "package a\r\n\r\nfunc A() {}\r\n",
+		"a/lf.go":    "package a\n\nfunc B() {}\n",
+		"a/other.go": "package a\n",
+	})
+	writeFile(t, repo, "a/crlf.go", "package a\r\n\r\nfunc A() { _ = 1 }\r\n")
+	writeFile(t, repo, "a/lf.go", "package a\r\n\r\nfunc B() { _ = 1 }\r\n")
+
+	out := runScope(t, repo)
+	assertContains(t, out, "convert back after gofmt):\n  a/crlf.go\nverify")
 }
 
 func TestExplicitSkippedPathsOnly(t *testing.T) {
