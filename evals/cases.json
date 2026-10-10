@@ -19,6 +19,31 @@
       ]
     },
     {
+      "id": "simplify-local-evidence",
+      "skills": [
+        "go-code-simplifier"
+      ],
+      "fixture": "evals/fixtures/cleanup",
+      "prior_messages": [],
+      "setup_edits": [
+        {
+          "id": "nested-copy-body",
+          "path": "cleanup.go",
+          "before": "\tif data == nil {\n\t\treturn nil\n\t}\n\tresult := make([]byte, len(data))\n\tcopy(result, data)\n\treturn result",
+          "after": "\tif data != nil {\n\t\tresult := make([]byte, len(data))\n\t\tcopy(result, data)\n\t\treturn result\n\t}\n\treturn nil"
+        }
+      ],
+      "prompt": "$go-code-simplifier 清理当前目录的全部手写 Go 代码和测试，提高可读性并减少冗余，保持现有行为与测试契约；不提交或推送。",
+      "expected_output": "落实有收益的局部清理，保留复杂返回与生命周期契约；复用充分的现有证据，验证投入与实际转换风险相称。",
+      "assertions": [
+        "CopyBytes 的复制主体去除外层条件嵌套，NormalizeName 的无意义转抄得到简化；不能用少做候选来降低验证成本。",
+        "可信原测试全部通过；Load 的失败值、Run 的 defer/panic、CopyBytes 的 nil/空、独立所有权和精确容量等契约保持。",
+        "已由代码核对与现有测试充分支持的局部转换不再新增重复测试、测试设施或外部环境；如补测，说明原证据不能检出的具体错误转换。",
+        "已通过的验证仅因相关输入变化或尚未解决的风险而重跑，报告整理不触发复测。",
+        "交付复用差异和验证输出，不额外制作计时或多份评测报告；没有提交或推送。"
+      ]
+    },
+    {
       "id": "review-correct-contracts",
       "skills": [
         "go-code-review"
