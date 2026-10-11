@@ -17,9 +17,7 @@
 
 ## golang-code-simplifier 文件职责
 
-- [SKILL.md](golang-code-simplifier/SKILL.md)：五项职责、执行流程和可选工具；Go 风格规范集中在“遵循项目规范”一节。
-- [Go 等价检查](golang-code-simplifier/references/go-equivalence.md)：涉及特定改写时按需查证，不规定命名或排版风格。
-- [golangci.yml](golang-code-simplifier/scripts/golangci.yml)：无项目配置时可选的只读诊断；项目现有配置优先。用法见 skill 的「可选 lint」。
+只有一个 [SKILL.md](golang-code-simplifier/SKILL.md)：官方 code-simplifier 原文，把 JavaScript/React 规范换成 Effective Go、Go Code Review Comments、Go Doc Comments，加上 Go 版本、gofmt 和 import 分组三条约定。
 
 ## 设计来源
 
