@@ -20,7 +20,8 @@
 只有一个 [SKILL.md](golang-code-simplifier/SKILL.md)，以官方 code-simplifier 为骨架：
 
 - 5 条规则：行为不变（列出 Go 中易变的行为）、遵循 Go 规范（Effective Go、Go Code Review Comments、Go Doc Comments 及命名细则）、简化结构、避免过度简化、范围
-- 6 步流程：确定范围、建立基线并通读、逐个文件修改、基于 diff 审核、最终验证、汇报
+- 控制流清理：退出分支、连续条件、重复分支、循环流程、分支选择和职责拆分，并核对 Go 等价性前提
+- 7 步流程：确定范围、逐函数分析、批量修改、统一整理、完整函数验收、最终验证、汇报
 - 环境中有 `gopls`、`goimports`、`staticcheck`/`golangci-lint`、子 agent 时使用，没有时按手工方式完成
 
 ## 设计来源
