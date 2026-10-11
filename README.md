@@ -13,11 +13,15 @@
 用 golang-code-simplifier 简化 games/br001，保持现有行为。
 ```
 
-默认聚焦近期改动；指定目录时检查该目录。改动留在工作区供审阅。
+默认处理未提交的改动；指定目录时处理其中全部手写代码，包括 `_test.go`。改动留在工作区供审阅，不提交。
 
 ## golang-code-simplifier 文件职责
 
-只有一个 [SKILL.md](golang-code-simplifier/SKILL.md)：官方 code-simplifier 原文，把 JavaScript/React 规范换成 Effective Go、Go Code Review Comments、Go Doc Comments，加上 Go 版本、gofmt 和 import 分组三条约定。
+只有一个 [SKILL.md](golang-code-simplifier/SKILL.md)，以官方 code-simplifier 为骨架：
+
+- 5 条规则：行为不变（列出 Go 中易变的行为）、遵循 Go 规范（Effective Go、Go Code Review Comments、Go Doc Comments 及命名细则）、简化结构、避免过度简化、范围
+- 6 步流程：确定范围、建立基线并通读、逐个文件修改、基于 diff 审核、最终验证、汇报
+- 环境中有 `gopls`、`goimports`、`staticcheck`/`golangci-lint`、子 agent 时使用，没有时按手工方式完成
 
 ## 设计来源
 
