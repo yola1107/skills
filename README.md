@@ -2,7 +2,7 @@
 
 本仓库保留两份独立的 Go 简化 skill：
 
-- [go-code-simplifier](go-code-simplifier/SKILL.md)：原版。
+- [go-code-simplifier](go-code-simplifier/SKILL.md)：直接以官方原版为底座的中文 Go 适配，补充等价性核对与按范围验证。
 - [golang-code-simplifier](golang-code-simplifier/SKILL.md)：按 Claude Code code-simplifier 的架构适配的通用 Go 清理与优化版本。
 
 ## 使用
@@ -10,10 +10,16 @@
 选择需要的版本，将对应的完整目录复制到目标项目的 `.agents/skills/`，或共用的 `~/.agents/skills/`。两份 skill 独立保留，使用时按名称指定。
 
 ```text
-用 golang-code-simplifier 简化 games/br001，保持现有行为。
+用 go-code-simplifier 简化 games/br001，保持现有行为。
 ```
 
 默认处理未提交的改动；指定目录时处理其中全部手写代码，包括 `_test.go`。改动留在工作区供审阅，不提交。
+
+## go-code-simplifier 文件职责
+
+[SKILL.md](go-code-simplifier/SKILL.md) 保留官方的角色描述、五项原则和六步流程。默认查看近期改动涉及的完整函数；指定目录时检查全部手写 Go 代码。按函数集中修改，复用有效基线，仅运行影响范围对应的检查；未覆盖的行为风险可补最小测试或隔离对照。验收分别关注行为保持与清理是否遗漏。
+
+[Go 等价性前提](go-code-simplifier/references/go-equivalence-pitfalls.md) 在删除或内联代码，以及改写控制流、求值、符号绑定、函数边界或同步行为之前按需阅读。
 
 ## golang-code-simplifier 文件职责
 
